@@ -44,15 +44,15 @@ Profiling instruments [CTD/VMP] are only partially done, and will be the lowest 
 
 ### Parse into xrwrap object
 These currently reside within the crude_readers package, but will ultimately be moved into a UWA repository. 
-- SBE56 drivers ([click here for jupyter notebook](https://github.com/iosonobert/pIMOS/blob/master/notebooks/Seabird_37_39_and_56 [using xrwrap].ipynb)):
+- SBE56 drivers ([click here for jupyter notebook](https://github.com/iosonobert/pIMOS/blob/master/notebooks/Seabird_37_39_and_56%[using%xrwrap].ipynb)):
     - Rawfile [UHDAS code]
     - Netcdf 
     - xr
-- SBE39 drivers ([click here for jupyter notebook](https://github.com/iosonobert/pIMOS/blob/master/notebooks/Seabird_37_39_and_56 [using xrwrap].ipynb)):
+- SBE39 drivers ([click here for jupyter notebook](https://github.com/iosonobert/pIMOS/blob/master/notebooks/Seabird_37_39_and_56%[using%xrwrap].ipynb)):
     - Rawfile [UHDAS code]
     - Netcdf 
     - xr
-- SBE37 drivers ([click here for jupyter notebook](https://github.com/iosonobert/pIMOS/blob/master/notebooks/Seabird_37_39_and_56 [using xrwrap].ipynb)):
+- SBE37 drivers ([click here for jupyter notebook](https://github.com/iosonobert/pIMOS/blob/master/notebooks/Seabird_37_39_and_56%[using%xrwrap].ipynb)):
     - Rawfile [UHDAS code]
     - Netcdf 
     - xr
@@ -70,7 +70,7 @@ These currently reside within the crude_readers package, but will ultimately be 
 The code for generating the database is in [this notebook](postgres/db_create.ipynb). Ignore all the django stuff in that folder - that's another rabbit hole we don't need right now. 
 
 Data processing examples are contained in the following notebooks:
-- [SBE56 T, SBE39 TP, SBE39 T, SBE37 CTD, SBE37 CT](./notebooks/Seabird_37_39_and_56 [using xrwrap].ipynb)
+- [SBE56 T, SBE39 TP, SBE39 T, SBE37 CTD, SBE37 CT](./notebooks/Seabird_37_39_and_56%[using%xrwrap].ipynb)
 - [RDI ADCP](./notebooks/RDI%20ADCP%20%5BSP250%20LR%20using%20xrwrap%5D.ipynb)
 - [Nortek Vector](./notebooks/Vector%20.VEC%20Read%20and%20Clean%20%5BxrWrap%5D.ipynb)
 
