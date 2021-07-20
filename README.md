@@ -56,11 +56,11 @@ These currently reside within the crude_readers package, but will ultimately be 
     - Rawfile [UHDAS code]
     - Netcdf 
     - xr
-- RDI ADCP drivers ([click here for jupyter notebook](https://github.com/iosonobert/pIMOS/blob/master/notebooks/Seabird_37_39_and_56.ipynb)):
+- RDI ADCP drivers ([click here for jupyter notebook](./notebooks/RDI%20ADCP%20%5BSP250%20LR%20using%20xrwrap%5D.ipynb)):
     - Rawfile [Dolfyn]
     - Netcdf 
     - xr
-- Vector drivers ([click here for jupyter notebook](https://github.com/iosonobert/pIMOS/blob/master/notebooks/Seabird_37_39_and_56.ipynb)):
+- Vector drivers ([click here for jupyter notebook](notebooks/Vector%20.VEC%20Read%20and%20Clean%20%5BxrWrap%5D.ipynb):
     - Rawfile [Dolfyn or Dall's Porpoise]
     - Netcdf 
     - xr
@@ -71,7 +71,8 @@ The code for generating the database is in [this notebook](postgres/db_create.ip
 
 Data processing examples are contained in the following notebooks:
 - [SBE56 T, SBE39 TP, SBE39 T, SBE37 CTD, SBE37 CT](./notebooks/Seabird_37_39_and_56.ipynb)
-- 
+- [RDI ADCP](./notebooks/RDI%20ADCP%20%5BSP250%20LR%20using%20xrwrap%5D.ipynb)
+- [Nortek Vector](./notebooks/Vector%20.VEC%20Read%20and%20Clean%20%5BxrWrap%5D.ipynb)
 
 ### Processing code
 Nothing actually done yet, but the hope is to pull together at least the following:
