@@ -1,0 +1,7 @@
+README.md
+setup.py
+pIMOS.egg-info/PKG-INFO
+pIMOS.egg-info/SOURCES.txt
+pIMOS.egg-info/dependency_links.txt
+pIMOS.egg-info/requires.txt
+pIMOS.egg-info/top_level.txt

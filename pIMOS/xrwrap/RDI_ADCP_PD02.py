@@ -22,8 +22,9 @@ from matplotlib.dates import num2date, date2num
 from zutils.xrwrap import xrwrap 
 import zutils.time as ztime
 
-import rdi_adcp_utils
-import pdb
+from ..utils import rdi_adcp_utils as rdi_adcp_utils
+
+
 import importlib
 
 deg2rad = np.pi / 180.

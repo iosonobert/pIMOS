@@ -8,9 +8,9 @@ class BinaryDistribution(Distribution):
         return False
 
 		
-setup(name='turbo_tools',
+setup(name='pIMOS',
       version='1.0.0',
-      description='field turbulence calcs',
+      description='field data processing',
       author='Andrew Zulberti',
       author_email='andrew.zulberti@gmail.com',
       #packages=['zutils'],

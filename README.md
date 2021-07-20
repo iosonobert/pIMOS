@@ -16,9 +16,9 @@ Database for raw and processed data and python tools for reading, writing and qu
 - Script to populate code first database from Matt Rayson's SQLLite database written also
 - Still need to write tables for raw and processed netcdf data.
 
-```
-[here](https://github.com/iosonobert/pIMOS/blob/master/postgres/db_create.ipynb) is a draft notebook for generating a postgres database and adding some data.
-```
+
+
+[Here](https://github.com/iosonobert/pIMOS/blob/master/postgres/db_create.ipynb) is a draft notebook for generating a postgres database and adding some data.
 
 ## Python code
 Code falls into 3 categories:
@@ -36,38 +36,42 @@ Where possible, these should read from binary files and avoid complex dependenci
 - SBE37 [Done using UHDAS code]
 - RDI ADCP [Done with Dolfyn]
 - Vector [Done with Dolfyn and Dall's Porpoise]
-- Signature [Too big for Dolfyn, binary streaming code not done]
+  - Dall's Porpoise is itself just a rip off of Dolfyn but handles some corrupt VEC files
+- Signature [Done with Dolfyn]
 
 
 Profiling instruments [CTD/VMP] are only partially done, and will be the lowest priority. These will be added once the rest of the system is complete
 
 ### Parse into xrwrap object
 These currently reside within the crude_readers package, but will ultimately be moved into a UWA repository. 
-- SBE56 drivers:
+- SBE56 drivers ([click here for jupyter notebook](https://github.com/iosonobert/pIMOS/blob/master/notebooks/Seabird_37_39_and_56.ipynb)):
     - Rawfile [UHDAS code]
     - Netcdf 
     - xr
-- SBE39:
+- SBE39 drivers ([click here for jupyter notebook](https://github.com/iosonobert/pIMOS/blob/master/notebooks/Seabird_37_39_and_56.ipynb)):
     - Rawfile [UHDAS code]
     - Netcdf 
     - xr
-- SBE37:
+- SBE37 drivers ([click here for jupyter notebook](https://github.com/iosonobert/pIMOS/blob/master/notebooks/Seabird_37_39_and_56.ipynb)):
     - Rawfile [UHDAS code]
     - Netcdf 
     - xr
-- RDI ADCP [Done with Dolfyn]:
+- RDI ADCP drivers ([click here for jupyter notebook](https://github.com/iosonobert/pIMOS/blob/master/notebooks/Seabird_37_39_and_56.ipynb)):
     - Rawfile [Dolfyn]
     - Netcdf 
     - xr
-- Vector:
-    - In a seperate notebook [not yet moved into crude_readers module]
+- Vector drivers ([click here for jupyter notebook](https://github.com/iosonobert/pIMOS/blob/master/notebooks/Seabird_37_39_and_56.ipynb)):
+    - Rawfile [Dolfyn or Dall's Porpoise]
+    - Netcdf 
+    - xr
 - Signature:
-    - No progress
+    - Not yet in xrwrap
 
-The code for generating the database is in [this notebook](postgres/db_create.ipynb). Ignbore all the django stuff in that folder - that's another rabbit hole we don't need right now. 
+The code for generating the database is in [this notebook](postgres/db_create.ipynb). Ignore all the django stuff in that folder - that's another rabbit hole we don't need right now. 
 
 Data processing examples are contained in the following notebooks:
 - [SBE56 T, SBE39 TP, SBE39 T, SBE37 CTD, SBE37 CT](./notebooks/Seabird_37_39_and_56.ipynb)
+- 
 
 ### Processing code
 Nothing actually done yet, but the hope is to pull together at least the following:
