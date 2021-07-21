@@ -122,6 +122,22 @@ Other repos exist for actual calculations, and these will be appropriately linke
     - Motion correction?
     - Wavelet stuff?
 
+# Process Levels
+
+Another thing IMOS defines are [Process(ing) Levels](https://github.com/aodn/imos-toolbox/wiki/ProcessLevelsAndQC). In a nutshell, this is how much processing has been performed, and the levels are:
+
+- FV00 Raw Data
+- FV01 Quality Controlled Data
+- FV02 Derived Products
+- FV03 Interpreted Products
+- FV04 Knowledge Products
+
+We must decide:
+
+1. Whether we agree with these designations for our purposes [e.g. I'm not sure how you can call something QCd until there has been some attempt to interpret it]
+2. How far I'm personally intended to take this archiving
+3. What to do, going forward, with everyone's Derived Products.
+
 # Dependencies
 
 Current state of play:
@@ -130,15 +146,11 @@ Current state of play:
 
 - xarray
 - Dolfyn [for now]
-- Dall's Porpoise [needed for reading corrupt .VEC files, otherwise can use Dolfyn] 
+- Dall's Porpoise [needed for reading corrupt .VEC files, otherwise can just use Dolfyn for everything] 
 - zutils [for convenience for now, anything here can be moved to pIMOS.utils]
-- crude_readers [this will need to change]
 - psycopg2 [for connecting to postgres database]
 - windrose [this is not a good dependency, amend this]
-- jupyter [for using examples]
-
-- 
-
+- jupyter [not really a dependency but the examples use jupyter to help render in github]
 
 
 # Known Issues
