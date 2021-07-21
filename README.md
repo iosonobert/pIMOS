@@ -1,12 +1,28 @@
 # pIMOS
 
-# Objective:
-Pull together:
+UWA Ocean Dynamics focussed python coding of IMOS tools. Click here for the [IMOS Wiki](https://github.com/aodn/imos-toolbox/wiki). 
 
-1. Database for raw and processed data 
-2. Python tools for reading, quality controlling,  exporting and all moored instruments we use at UWA. 
+The system consists of:
 
-Extend to profiling [CTD and VMP] when time allows
+1. A Deployment Database
+   1. IMOS database is in MS Access
+   2. The pIMOS will be in postgreSQL. It will be inspired by the IMOS database, but no requirement for a matching API/structure.  
+2. Instrument specific NetCDF templates that are 'as CF Compliant as possible'.
+   1. Will only code instruments used by UWA Ocean Dynamics, not coding up all of the IMOS instruments [yet]
+3. Parsers for each instrument file into compliant
+   1. pIMOS contains a series of classes and superclasses which wrap xarray datasets and handle all of the conventions and metadata tracking
+4. Pre-processing 
+   1. IMOS call things like bin mapping and coordinate transforms ['pre-processing'](https://github.com/aodn/imos-toolbox/wiki/PPRoutines#coordinate-transformation-from-enu-to-beam-of-nortek-adcp-velocity-data---adcpnortekvelocityenu2beampp)
+   2. This will all exist in pIMOS [so far as it is relevant to UWA instruments]. 
+      1. The xarray Dataset wrapper will handle tracking of any pre-processing in the `Comments` global/variable attributes of the netCDF dataset.
+      2. Ultimate goal to have the terminology and method nams as close to the IMOS terminology as possible.
+5. Quality Control
+   1. IMOS outlines many [QC procedures](https://github.com/aodn/imos-toolbox/wiki/QCProcedures)
+   2. pIMOS will implement all that are relevant to UWA instruments. 
+      1. The xarray Dataset wrapper will handle tracking of any QC in the `Comments` global/variable attributes of the netCDF dataset.
+      2. Ultimate goal to have the terminology and method nams as close to the IMOS terminology as possible.
+
+**Initial focus will be on moored instruments. Extend to profiling [Solander CTD and VMP] when time allows.
 
 ## Database
 - Hold metadata for:
@@ -17,26 +33,27 @@ Extend to profiling [CTD and VMP] when time allows
     - Deployment files [including URL]
     - UWA raw netcdf files [including URL]
     - UWA processed netcdf files [including URL]
+    - LISST ** Not done yet
 - Written in PostgreSQL [Code first database already written]
 - Script to populate code first database from Matt Rayson's SQLLite database written also
 - Still need to write tables for raw and processed netcdf data.
 
-
-
-[Here](https://github.com/iosonobert/pIMOS/blob/master/postgres/db_create.ipynb) is a draft notebook for generating a postgres database and adding some data.
+[Here](notebooks/postgreSQL_db_create.ipynb) is a draft notebook for generating a postgres database and adding some data. Ignore all the django stuff in that folder - that's another rabbit hole we don't need right now. 
 
 ## Python code
-Code falls into 3 categories:
+Code falls into 5 categories:
 1. Raw file readers
 1. The actual zutils.xrwrap object [common for ALL* instruments]
     - This class controls all the QAQC codes CF conventions etc. 
     - Each instrument will naturally inherit from this class, adding unique features if necessary
 1. Code to parse from various data formats into the common data object
-1. Processing scripts
+1. 'Pre-processing' code
+1. QC code
 1. External processing libraries
 
 ### 1. Raw file readers
-Where possible, these should read from binary files and avoid complex dependencies. Dependence on Dolfyn for exmple is not ideal as Kilcher is always changing his API.  
+Where possible, these should read from binary files and avoid complex dependencies or other human interference. Dependancies should be reduced where possible. If code is borrowed, acknowledge it. Dependence on Dolfyn for exmple is not ideal as Kilcher is always changing his API, but the author must be acknowledged.
+
 - SBE56 [Done using UHDAS code]
 - SBE39 [Done using UHDAS code]
 - SBE37 [Done using UHDAS code]
@@ -44,62 +61,53 @@ Where possible, these should read from binary files and avoid complex dependenci
 - Vector [Done with Dolfyn and Dall's Porpoise]
   - Dall's Porpoise is itself just a rip off of Dolfyn but handles some corrupt VEC files
 - Signature [Done with Dolfyn]
-- WetlabsNTU [.raw]
+- WetlabsNTU [reads .raw files with pandas]
 
-
-Profiling instruments [CTD/VMP] are only partially done, and will be the lowest priority. These will be added once the rest of the system is complete
+** Profiling instruments [CTD/VMP] are only partially done, and will be the lowest priority. These will be added once the rest of the system is complete
 
 ### 2/3. Parse into xrwrap object
-These currently reside within the crude_readers package, but will ultimately be moved into a UWA repository. 
-- SBE56 drivers ([click here for jupyter notebook](https://github.com/iosonobert/pIMOS/blob/master/notebooks/Seabird_37_39_and_56_[using_xrwrap].ipynb)):
-    - Rawfile [UHDAS code]
-    - Netcdf 
-    - xr
-- SBE39 drivers ([click here for jupyter notebook](https://github.com/iosonobert/pIMOS/blob/master/notebooks/Seabird_37_39_and_56_[using_xrwrap].ipynb)):
-    - Rawfile [UHDAS code]
-    - Netcdf 
-    - xr
-- SBE37 drivers ([click here for jupyter notebook](https://github.com/iosonobert/pIMOS/blob/master/notebooks/Seabird_37_39_and_56_[using_xrwrap].ipynb)):
-    - Rawfile [UHDAS code]
-    - Netcdf 
-    - xr
-- RDI ADCP drivers ([click here for jupyter notebook](./notebooks/RDI%20ADCP%20%5BSP250%20LR%20using%20xrwrap%5D.ipynb)):
-    - Rawfile [Dolfyn]
-    - Netcdf 
-    - xr
-- Vector drivers ([click here for jupyter notebook](notebooks/Vector%20.VEC%20Read%20and%20Clean%20%5BxrWrap%5D.ipynb)):
-    - Rawfile [Dolfyn or Dall's Porpoise]
-    - Netcdf 
-    - xr
-- Signature:
-    - Not yet in xrwrap
-- WetlabsNTU/WetLABSFLNTU/WetlabsNTUSB
+[Here](xarray_wrapper_intro.ipynb) is a basic intro to the xarray wrapper and how to interface with the underlying NetCDF file.
+
+Instrument specific examples are covered in the following notebooks:
+
+- [SBE56 T, SBE39 TP, SBE39 T, SBE37 CTD, SBE37 CT](./notebooks/xarray_wrapper_Seabird_37_39_and_56.ipynb)
+- [RDI ADCP](./notebooks/xarray_wrapper_RDI_LONGRANGER_ADCP.ipynb)
+- [Nortek Vector](./notebooks/xarray_wrapper_Nortek_Vector.ipynb)
+- [Nortek Signature](./notebooks/Nortek_Signature.ipynb)
+- [WetLABS NTU](./notebooks/xarray_wrapper_WetlabsNTU.ipynb)
 - LISST
 
-The code for generating the database is in [this notebook](postgres/db_create.ipynb). Ignore all the django stuff in that folder - that's another rabbit hole we don't need right now. 
+Only the Seabird example runs through every file [for KISSME] on a loop. The others are just individual examples. 
 
-Data processing examples are contained in the following notebooks:
-- [SBE56 T, SBE39 TP, SBE39 T, SBE37 CTD, SBE37 CT](./notebooks/Seabird_37_39_and_56_[using_xrwrap].ipynb)
-- [RDI ADCP](./notebooks/RDI_ADCP_%5BSP250_LR_using_xrwrap%5D.ipynb)
-- [Nortek Vector](./notebooks/Vector_.VEC_Read_and_Clean_%5Busing_xrWrap%5D.ipynb)
-- [Nortek Signature](./notebooks/Nortek_Signature.ipynb)
-
-### 4. Processing code
-Nothing actually done yet, but the hope is to pull together at least the following:
-- Ocean mooring code for vertically concatenating a thermistor string of multiple CTDs
-- Despiking
+### 4/5. Preprocessing/QC code
+To the extent that this exists it is all in those notebooks above. We have:
+- Despiking [Goring Nikora]
 - Phase unwrapping
-- Acoustic instrument auto QAQC
+- Bin Mapping
+- ADV and ADCP coordinate transforms
+- Acoustic instrument QAQC [incomplete]
 
-## 5. External processing code
+Down the line we should add:
+
+- Ocean mooring code for vertically concatenating a thermistor string of multiple CTDs
+
+- Motion correction
+- More auto QC routines with IMOS style names
+
+** NOTE. A point where we may differ from IMOS. We will often 'replace' data removed in QC, rather than just flagging it. Need to think how this is handled. Maybe we should have a
+
+1. 'modified' flag, or;
+2. Just add the comment to the nc that the change was made, but not actually flag exactly which variables were changed. 
+
+## 6. External processing code
 
 Other repos exist for actual calculations, and these will be appropriately linked to this repo with examples.
 - mrayson/sfoda
-    - Signal processing/filtering/harmonic anaysis
+    - Signal processing/filtering/harmonic analysis
     - Modal decomposition
 - mrayson/mycurrents
     - stacking ocean mooring
-    - data visualisation
+    - xarray visualisation
 - iosonobert/turbo_tools
     - Turbulence calcs
         - IDM dissipation
