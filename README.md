@@ -66,7 +66,7 @@ Where possible, these should read from binary files and avoid complex dependenci
 ** Profiling instruments [CTD/VMP] are only partially done, and will be the lowest priority. These will be added once the rest of the system is complete
 
 ### 2/3. Parse into xrwrap object
-[Here](xarray_wrapper_intro.ipynb) is a basic intro to the xarray wrapper and how to interface with the underlying NetCDF file.
+[Here](notebooks/xarray_wrapper_intro.ipynb) is a basic intro to the xarray wrapper and how to interface with the underlying NetCDF file.
 
 Instrument specific examples are covered in the following notebooks:
 
