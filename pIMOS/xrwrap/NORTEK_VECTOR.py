@@ -11,7 +11,6 @@ import matplotlib.pyplot as plt
 import pandas
 import numpy as np
 import xarray as xr
-# from matplotlib.dates import num2date, date2num
 import matplotlib
 from windrose import WindroseAxes
 import datetime
@@ -20,9 +19,7 @@ import pdb
 
 import importlib 
 
-from crude_readers.utils import plot as crplot
 from zutils.xrwrap import xrwrap
-from crude_readers.o2xrwrap import o2xrwrap
 import zutils.stats as zstats
 import zutils.file as zfile
 
@@ -56,7 +53,7 @@ def num2date_lk(mpltime):
         return None
     return datetime.datetime.fromordinal(int(mpltime)) + datetime.timedelta(days=mpltime % 1)
 
-class NORTEK_VECTOR(o2xrwrap):
+class NORTEK_VECTOR(xrwrap):
     
     folder = ''
     file = ''
