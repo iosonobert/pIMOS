@@ -84,13 +84,14 @@ class RDI_ADCP_PD02(xrwrap):
         self.update_attribute('references', '')
         self.update_attribute('comment', '')
 
-    def export(self, final=False, final_folder=None):
+    def export(self, final=False, final_folder=None, csv=True):
         """
         Overloading the base class export function.
         """
 
         # to NetCDF is not working after the new dolfyn update
-        outname = self.outname()
+        # outname = self.outname()
+        outname = self.file_
         folder = self.folder
 
         self.parse_attributes()
@@ -103,7 +104,8 @@ class RDI_ADCP_PD02(xrwrap):
 
         self.ds.close() # Force close
 
-        self.ds.to_dataframe().to_csv('{folder}//{file_}.csv'.format(folder=folder, file_=outname))
+        if csv:
+            self.ds.to_dataframe().to_csv('{folder}//{file_}.csv'.format(folder=folder, file_=outname))
 
         nc_file = '{folder}//{file_}.nc'.format(folder=folder, file_=outname)
         self.ds.to_netcdf(path=nc_file)
@@ -205,6 +207,7 @@ class RDI_ADCP_PD02(xrwrap):
                 },
         }
 
+        
         attrs = data.config
         var_names = list(adcp_vars.keys())
         ds = xr.Dataset(attrs=attrs)
@@ -232,9 +235,14 @@ class RDI_ADCP_PD02(xrwrap):
         self.ds = ds
         self.encoding = encoding
 
+        self.associate_qc_flag('beamvel', 'velocity3')
+
         # Rotate raw data
         if self.rotate:
             self._calc_rotations()
+            
+        if False: # I don't know where the Dolfyn gets this info from. And thus, I don't trust this info. 
+            self.update_attribute('nominal_instrument_orientation', self._data.config['orientation'])
 
         # self.ds, self.encoding = self._to_xray(self._data)
 
@@ -361,6 +369,13 @@ class RDI_ADCP_PD02(xrwrap):
 
         self.ds = xr.merge((self.ds, ds))
         self.encoding = encoding
+
+        self.associate_qc_flag('u', 'velocity')
+        self.associate_qc_flag('v', 'velocity')
+        self.associate_qc_flag('w', 'velocity')
+        self.associate_qc_flag('uinst', 'velocity')
+        self.associate_qc_flag('vinst', 'velocity')
+        self.associate_qc_flag('winst', 'velocity')
 
     def _calc_depth(self, orientation=None, P=None):
         """

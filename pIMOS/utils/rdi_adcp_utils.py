@@ -222,6 +222,9 @@ def qaqc_depth(self, max_depth, orientation=None, P=None, variables=['u', 'v', '
     # ds['w'].values[mask] = np.nan
 
 def sidelobe_trim(self, trim=1.5, P='depth', variables=['u', 'v', 'w'], trim_units='native'):
+    """
+    This actually sets these variables to nan. It does not flag them. 
+    """
 
     sidelobe_trim_calc(self, trim=trim, P=P, trim_units=trim_units)
     for variable in variables:

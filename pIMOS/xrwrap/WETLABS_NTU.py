@@ -61,7 +61,15 @@ class WETLABS_NTU(xrwrap):
         
     def read_raw_pd(self, attributes):
         
-        df = pd.read_csv(self.fullpath, skiprows=1, delim_whitespace=True, names=['date', 'time', 'c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7'])
+        skiprows=0
+        line = 'n'
+        with open(self.fullpath) as fop:
+            while not 'records to read' in line:
+                skiprows+=1
+                line = fop.readline()
+            pass
+
+        df = pd.read_csv(self.fullpath, skiprows=skiprows, delim_whitespace=True, names=['date', 'time', 'c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8', 'c9'])
 
         df.time = df.date + ' ' + df.time
         df = df.drop(['date'], axis=1)
@@ -111,6 +119,7 @@ class WETLABS_NTU(xrwrap):
         """
 
         self._calibrate_SFDC(SF, DC, column, 'turbidity', 'seawater_turbidity', 'NTU')
+        self.associate_qc_flag('turbidity', 'turbidity')
 
     def _calibrate_chlorophyll(self, SF, DC, column):
         """
@@ -118,6 +127,7 @@ class WETLABS_NTU(xrwrap):
         """
 
         self._calibrate_SFDC(SF, DC, column, 'chlorophyll', 'seawater_chlorophyll_concentration', 'mg/L')
+        self.associate_qc_flag('chlorophyll', 'chlorophyll')
 
     def _calibrate_SFDC(self, SF, DC, column, param_name, param_long_name, param_units):
         """

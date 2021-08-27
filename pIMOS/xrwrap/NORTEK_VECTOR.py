@@ -6,13 +6,11 @@ Created on Mon Jul 30 15:17:42 2018
 """
 #%%
 import matplotlib.pyplot as plt
-# import dolfyn
-#from dolfyn.adp import api as adcp
+
 import pandas
 import numpy as np
 import xarray as xr
 import matplotlib
-from windrose import WindroseAxes
 import datetime
 import os 
 import pdb
@@ -106,13 +104,13 @@ class NORTEK_VECTOR(xrwrap):
         self.update_attribute('references', '')
         self.update_attribute('comment', '')
 
-    def export(self, final=False, final_folder=None):
+    def export(self, final=False, final_folder=None, csv=True):
         """
         Overloading the base class export function.
         """
 
         # to NetCDF is not working after the new dolfyn update
-        outname = self.outname()
+        outname = self.file_
         folder = self.folder
 
         self.parse_attributes()
@@ -125,7 +123,8 @@ class NORTEK_VECTOR(xrwrap):
 
         self.ds.close() # Force close
 
-        self.ds.to_dataframe().to_csv('{folder}//{file_}.csv'.format(folder=folder, file_=outname))
+        if csv:
+            self.ds.to_dataframe().to_csv('{folder}//{file_}.csv'.format(folder=folder, file_=outname))
 
         nc_file = '{folder}//{file_}.nc'.format(folder=folder, file_=outname)
         self.ds.to_netcdf(path=nc_file)
@@ -208,16 +207,20 @@ class NORTEK_VECTOR(xrwrap):
 
         attrs = {}
         attrs['config:fs'] = dat.config.fs
-        attrs['config:checkdata:First_samp'] = dat.config.checkdata.First_samp
-        attrs['config:checkdata:Samples'] = dat.config.checkdata.Samples
-        attrs['config:data_header:Corr1'] = dat.config.data_header.Corr1
-        attrs['config:data_header:Corr2'] = dat.config.data_header.Corr2
-        attrs['config:data_header:Corr3'] = dat.config.data_header.Corr3
-        attrs['config:data_header:NRecords'] = dat.config.data_header.NRecords
-        attrs['config:data_header:Noise1'] = dat.config.data_header.Noise1
-        attrs['config:data_header:Noise2'] = dat.config.data_header.Noise2
-        attrs['config:data_header:Noise3'] = dat.config.data_header.Noise3
-        attrs['config:data_header:time'] = dat.config.data_header.time
+
+        # THESE DON'T SEEM TO ALWAYS BE THERE. 
+        # attrs['config:checkdata:First_samp'] = dat.config.checkdata.First_samp
+        # attrs['config:checkdata:Samples'] = dat.config.checkdata.Samples
+        # attrs['config:data_header:Corr1'] = dat.config.data_header.Corr1
+        # attrs['config:data_header:Corr2'] = dat.config.data_header.Corr2
+        # attrs['config:data_header:Corr3'] = dat.config.data_header.Corr3
+        # attrs['config:data_header:NRecords'] = dat.config.data_header.NRecords
+        # attrs['config:data_header:Noise1'] = dat.config.data_header.Noise1
+        # attrs['config:data_header:Noise2'] = dat.config.data_header.Noise2
+        # attrs['config:data_header:Noise3'] = dat.config.data_header.Noise3
+        # attrs['config:data_header:time'] = dat.config.data_header.time
+        # THESE DON'T SEEM TO ALWAYS BE THERE. 
+        
         attrs['config:hardware:FWversion'] = dat.config.hardware.FWversion
         attrs['config:hardware:HWrevision'] = dat.config.hardware.HWrevision
         attrs['config:hardware:PICversion'] = dat.config.hardware.PICversion

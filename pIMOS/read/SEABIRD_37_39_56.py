@@ -72,6 +72,7 @@ def parse_seabird_cnv(cnvfile, basetime=None):
 
     nrec = sb.array.shape[0]
 
+    time_code = sb.names[tt]
     if timevar == 'time':
         if basetime is None:
             #basetime = datetime(2000,1,1)
@@ -85,7 +86,17 @@ def parse_seabird_cnv(cnvfile, basetime=None):
         for ii in range(len(tsec)-1):
             if tsec[ii] == tsec[ii+1]:
                 tsec[ii+1] += 0.5
-        dtime = [basetime + timedelta(seconds=tseconds) for tseconds in tsec]
+
+        print('Time code ' + time_code)
+        # Zulberti adding. Rayson code assumed it was always seconds elapsed [timeS]
+        if time_code.lower() == 'timek':
+            dtime = [datetime(2000, 1, 1) + timedelta(seconds=tseconds) for tseconds in tsec]
+        elif time_code.lower() == 'times':
+            dtime = [basetime + timedelta(seconds=tseconds) for tseconds in tsec]
+        else:
+            raise(Exception("Not yet coded, return to the seabird manual for more into."))
+
+
     elif timevar == 'julian':
         jdays = (sb.array[:,tt]*86400.0*1e6).astype('timedelta64[us]')
         basetime = np.datetime64(datetime(sb.yearbase,1,1))
