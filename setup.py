@@ -10,6 +10,7 @@ class BinaryDistribution(Distribution):
 		
 setup(name='pIMOS',
       version='1.0.0',
+      url='https://github.com/iosonobert/pIMOS/',
       description='field data processing',
       author='Andrew Zulberti',
       author_email='andrew.zulberti@gmail.com',
