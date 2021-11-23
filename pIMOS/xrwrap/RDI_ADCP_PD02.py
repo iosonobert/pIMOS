@@ -258,8 +258,9 @@ class RDI_ADCP_PD02(xrwrap):
         Instrument tilt. 
         """
 
-        tilt = self._calc_tilt(self.ds['pitch'].values,\
-               self.ds['roll'].values)
+        # tilt = self._calc_tilt(self.ds['pitch'].values,\
+        #        self.ds['roll'].values)
+        tilt = self._calc_tilt(method='combined')
 
         return tilt 
 
@@ -431,7 +432,7 @@ class RDI_ADCP_PD02(xrwrap):
 
         rdi_adcp_utils.sidelobe_trim(self, trim=trim, trim_units=trim_units, P=P, variables=variables)
         
-    def _calc_tilt(self, pitch, roll):
+    def _calc_tilt(self, method='combined'):
         """
         Calculate instrument tilt
         """
@@ -439,10 +440,17 @@ class RDI_ADCP_PD02(xrwrap):
         # https://github.com/aodn/imos-toolbox/wiki/QCProcedures#adcp-tilt-test---imostiltvelocitysetqc---compulsory
         # TILT = acos(sqrt(1 - sin(ROLL)^2 - sin(PITCH)^2))
 
-        TILT = np.arccos(np.sqrt(1 - np.sin(roll*deg2rad)**2\
-                - np.sin(pitch*deg2rad)**2)) * rad2deg
+        pitch = self.ds['pitch'].values
+        roll = self.ds['roll'].values
 
-        return TILT
+        if method.lower()=='max':
+            return np.maximum(abs(roll), abs(pitch))
+        elif method.lower()=='combined':
+            return np.arccos(np.sqrt(1 - np.sin(roll*deg2rad)**2\
+                - np.sin(pitch*deg2rad)**2)) * rad2deg
+        else:
+            raise(Exception("Unrecognised method."))
+            
 
     def _rotate_velocity(self, beamvel, distance,\
         heading_deg, pitch_deg, roll_deg,\

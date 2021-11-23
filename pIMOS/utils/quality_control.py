@@ -178,15 +178,14 @@ def pimosTiltVelocitySetQC(rr, thresh_1):
     
     raise(NotImplementedError)
 
-def pimosTiltVelocitySimpleQC(rr, thresh_1=22):
+def pimosTiltVelocitySimpleQC(rr, thresh_1=22, method='max'):
     """
     Here we use a much simpler single threshold. The object must have a  "_calc_tilt" method that returns the instrument tilt. 
     """
     ds = rr.ds
 
     # This function must be defined for the instrument at hand
-    tilt = rr._calc_tilt(ds['pitch'].values,\
-            ds['roll'].values)
+    tilt = rr._calc_tilt(method='max')
 
     logical_index = tilt > thresh_1
     
