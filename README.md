@@ -30,7 +30,7 @@ General examples of processing files and the features of the package are found i
 
 Examples of archiving entire experiments are found in the [Experiments](experiments) folder, e.g.:
 
-- The [KISSME Experiment](experiments/kissme);
+- The [KISSME Experiment](experiments/KISSME);
 - Rowley Shoals 2019 still to come.  
 
 ## Database
