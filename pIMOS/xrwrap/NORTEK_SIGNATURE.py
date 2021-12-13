@@ -24,7 +24,8 @@ from zutils.xr import xrwrap
 
 from pIMOS.utils.nortek_signature_utils import beam2inst, inst2earth
 
-
+deg2rad = np.pi / 180.
+rad2deg = 180./np.pi
 
 class NORTEK_SIGNATURE(xrwrap):
     
@@ -298,5 +299,22 @@ class NORTEK_SIGNATURE(xrwrap):
         T = T.replace('[','');T=T.replace(']','');T=np.fromstring(T, dtype=float, sep=' ').reshape((4, 4))
         
         return T
+
+    def _calc_tilt(self, method='combined'):
+        """
+        Calculate instrument tilt
+        """
+
+        pitch = self.ds['pitch'].values
+        roll = self.ds['roll'].values
+
+        if method.lower()=='max':
+            return np.maximum(abs(roll), abs(pitch))
+        elif method.lower()=='combined':
+            return np.arccos(np.sqrt(1 - np.sin(roll*deg2rad)**2\
+                - np.sin(pitch*deg2rad)**2)) * rad2deg
+        else:
+            raise(Exception("Unrecognised method."))
+  
 
 # signature = NORTEK_SIGNATURE(fullpath, dat=signature.dat, nens=nens)
