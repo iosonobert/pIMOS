@@ -24,6 +24,15 @@ The system consists of:
 
 **Initial focus will be on moored instruments. Extend to profiling [Solander CTD and VMP] when time allows.
 
+# Examples
+
+General examples of processing files and the features of the package are found in the [Notebooks](notebooks) folder. 
+
+Examples of archiving entire experiments are found in the [Experiments](experiments) folder, e.g.:
+
+- The [KISSME Experiment](experiments/kissme);
+- Rowley Shoals 2019 still to come.  
+
 ## Database
 - Hold metadata for:
     - Experiments
@@ -127,16 +136,21 @@ Other repos exist for actual calculations, and these will be appropriately linke
 Another thing IMOS defines are [Process(ing) Levels](https://github.com/aodn/imos-toolbox/wiki/ProcessLevelsAndQC). In a nutshell, this is how much processing has been performed, and the levels are:
 
 - FV00 Raw Data
+  - Raw data is defined as unprocessed data and data products that have not undergone quality control. The data may be in engineering units or physical units, time and locations details can be in relative units and values can be pre-calibration measurements. Level 0 data is not suitable for public access within IMOS.
 - FV01 Quality Controlled Data
+  - Quality controlled data have passed quality assurance procedures such as automated routines and sensor calibration or visual inspection and removal of obvious errors. The data are in physical units using standard SI metric units with calibration and other pre-processing routines applied, all time and location values are in absolute coordinates to comply with standards and datum. Data includes flags for each measurement to indicate the estimated quality of the measurement. Metadata exists for the data or for the higher level dataset that the data belongs to. This is the standard IMOS data level and is what should be made available to AODN and to the IMOS community.
 - FV02 Derived Products
+  - Derived products require scientific and technical interpretation. Normally these will be defined by the community that collects or utilises the data.
 - FV03 Interpreted Products
+  - These products require researcher driven analysis and interpretation, model based interpretation using other data and / or strong prior assumptions.
 - FV04 Knowledge Products
+  - These products require researcher driven scientific interpretation and multidisciplinary data integration and include model-based interpretation using other data and / or strong prior assumptions.
 
 We must decide:
 
 1. Whether we agree with these designations for our purposes [e.g. I'm not sure how you can call something QCd until there has been some attempt to interpret it]
 2. How far I'm personally intended to take this archiving
-3. What to do, going forward, with everyone's Derived Products.
+3. What to do, going forward, with everyone's Derived & Interpreted Products.
 
 # Dependencies
 
