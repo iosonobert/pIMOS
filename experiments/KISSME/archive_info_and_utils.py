@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import os
 import pandas as pd
 import numpy as np
+import zutils.plotting as zplot
 
 """
 Various tools that should be pIMOS tools, but that I have not officially found a spot for yet. 
@@ -109,10 +110,15 @@ def strcmpi(lst, string):
     return rtn
     pass
 
-def plot_temp(rr, db_data, mooring, title, variable='Temperature', plotraw=True):
+def plot_temp(rr, db_data, mooring, title, variable='Temperature', plotraw=True, width=65):
     
     #%matplotlib inline
     fig = plt.figure(figsize=(20,3))
+
+    zl = zplot.axis_layer(left=2, right=2, bottom=2, top=2, heights = [4], widths=[width])
+    zl.verbose = False
+
+    zl.lay(0, 0)
 
     if plotraw:
         rr.ds[variable].plot(label='Raw')

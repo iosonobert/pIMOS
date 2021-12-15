@@ -24,7 +24,6 @@ import zutils.time as ztime
 
 from ..utils import rdi_adcp_utils as rdi_adcp_utils
 
-
 import importlib
 
 deg2rad = np.pi / 180.

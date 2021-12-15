@@ -19,7 +19,6 @@ import pdb
 deg2rad = np.pi / 180.
 rad2deg = 180./np.pi
 
-
 def resample_uvw(self, dtavg, raw=False, rotate=False, othervars=[]):
     """
     Resample the velocity data by averaging and subsampling at the average interval
@@ -99,6 +98,11 @@ def qaqc_pgood(self, thresh):
     Uses minimum of all four beams
     """
 
+    raise(Exception("""
+                This was from Rayson code but QC has been moved into seperate module 
+                which adds comments to the file and can accomodate a more complex QC 
+                flag system etc."""))
+
     ds = self.ds
 
     pgood = ds['percent_good'].min(axis=1)
@@ -121,6 +125,12 @@ def qaqc_corr(self, thresh):
 
     TODO: Use the correlation to indicate which beams to use for transformation
     """
+    
+    raise(Exception("""
+                This was from Rayson code but QC has been moved into seperate module 
+                which adds comments to the file and can accomodate a more complex QC 
+                flag system etc."""))
+
     ds = self.ds
     corr = ds['corr'][:,0:3,:].min(axis=1)
 
@@ -138,6 +148,12 @@ def qaqc_echo(self, thresh):
 
     Ensure that all four beams are above threshold
     """
+    
+    raise(Exception("""
+                This was from Rayson code but QC has been moved into seperate module 
+                which adds comments to the file and can accomodate a more complex QC 
+                flag system etc."""))
+
     ds = self.ds
     echo = ds['echo'][:,:,:].min(axis=1)
 
@@ -155,6 +171,11 @@ def qaqc_errvel(self, thresh):
 
     """
 
+    raise(Exception("""
+                This was from Rayson code but QC has been moved into seperate module 
+                which adds comments to the file and can accomodate a more complex QC 
+                flag system etc."""))
+
     ds = self.ds
 
     evel = ds['errvel']
@@ -167,11 +188,16 @@ def qaqc_errvel(self, thresh):
 
     self.ds.attrs.update({'QAQC Error Velocity Maximum Threshold':thresh})
 
-
 def qaqc_tilt(self, cutoff_angle):
     """
     Mask u/v/w arrays when the instrument tilt goes too far
     """
+    
+    raise(Exception("""
+                This was from Rayson code but QC has been moved into seperate module 
+                which adds comments to the file and can accomodate a more complex QC 
+                flag system etc."""))
+
     ds = self.ds
 
     tilt = self._calc_tilt(ds['pitch'].values,\
@@ -194,6 +220,11 @@ def qaqc_depth(self, max_depth, orientation=None, P=None, variables=['u', 'v', '
     Mask out regions outside of the maximum depth
     """
 
+    raise(Exception("""
+                This was from Rayson code but QC has been moved into seperate module 
+                which adds comments to the file and can accomodate a more complex QC 
+                flag system etc."""))
+
     ds = self.ds
     if orientation is None:
         orientation = ds.orientation
@@ -206,7 +237,6 @@ def qaqc_depth(self, max_depth, orientation=None, P=None, variables=['u', 'v', '
     zhat = self.ds.zhat.values
     z = ds.distance.values
     dz = np.abs(z[1] - z[0])
-
 
     if orientation == 'down':
         #flag_depth = zhat > max_depth - 0.15*max_depth # too conservative

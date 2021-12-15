@@ -59,6 +59,7 @@ def pimosInOutWaterQC(rr, mooring, db_data, year_1=1990, year_n=2200, delete_raw
     start_date = df['StartDate'].values[0]
     end_date = df['EndDate'].values[0]
 
+    # Start
     rr.update_qc_flag('*', 
                   'time',
                   np.datetime64(datetime.datetime(year_1, 1, 1)),
@@ -66,6 +67,7 @@ def pimosInOutWaterQC(rr, mooring, db_data, year_1=1990, year_n=2200, delete_raw
                   1,
                   'pimosInOutWaterQC start date: {}'.format(start_date), delete_raw=delete_raw)
 
+    #End
     rr.update_qc_flag('*', 
                       'time',
                       end_date,
@@ -232,21 +234,47 @@ def pimosEchoIntensityVelocitySetQC():
     """
     raise(NotImplementedError)
 
-def pimosEchoIntensitySimpleQC(rr, thresh_1=20, echo_name='echo', axis=2):
+def pimosEchoIntensitySimpleQC(rr, thresh_1=20, echo_name='echo', beam_name='beam', flag_name='qc_velocity'):
     """
     Minimum echo amplitude test. This is not in the IMOS toolbox. 
     """
 
     ds = rr.ds
-    echo = ds[echo_name][:,:,:].min(axis=axis)
+    echo = ds[echo_name].min(axis=axis)
 
     logical_index = echo < thresh_1
     
-    rr.update_qc_flag_logical('qc_velocity', 
+    rr.update_qc_flag_logical(flag_name, 
                            'time', 
                            logical_index, 
                            1,
                           'pimosEchoIntensitySimpleQC threshold: {}'.format(thresh_1))
+
+def pimosFishDetectionQC(rr, thresh_1=20, echo_name='echo', beam_name='beam', flag_name='qc_velocity'):
+    """
+    ** Not exactly in the IMOS toolbox
+
+    Run a fish detectrion algorithm that compares echo amplitude across beams. 
+    """
+
+    ds = rr.ds
+    echo = ds[echo_name]
+
+    beam_index = get_dim_index(echo, beam_name)
+
+    emax = np.max(echo.values, axis=beam_index)
+    emin = np.min(echo.values, axis=beam_index)
+
+    logical_index = emax-emin>40
+
+    rr.update_qc_flag_logical(flag_name, 
+                           'time', 
+                           logical_index, 
+                           1, 
+                           comment='pimosFishDetectionQC threshold: {}'.format(thresh_1))
+                           
+
+    # raise(NotImplementedError)
 
 def pimosFishDetectionBeamwiseQC(rr, thresh_1=20, echo_name='echo', axis=2):
     """
@@ -264,17 +292,23 @@ def pimosFishDetectionVerticalQC(rr, thresh_1=20, echo_name='echo', axis=2):
     """
     raise(NotImplementedError)
 
-def pimosCorrMagVelocitySetQC(rr, corr_name='corr', thresh_1=60, axis=2):
+def pimosCorrMagVelocitySetQC(rr, thresh_1=60, corr_name='corr', beam_name='beam'):
     """
     imosCorrMagVelocitySetQC test checks that there is sufficient signal to noise ratio to obtain good quality data via the measure of a 
     pulse-to-pulse correlation in a ping. At each bin, if at least 2 beams see their correlation value greater than a threshold value then 
     the sample at that bin passes the test.
 
-    This test raises a warning if applied without CMAGn being vertically bin-mapped.
-
+    IMOS States: "This test raises a warning if applied without CMAGn being vertically bin-mapped." 
+    This warning is not implemented - I'm not sure why it needs to coma after bin mapping. Also ADVs aren't bin mapped.
+    
     """
+    
     ds = rr.ds
-    corr = ds[corr_name][:,:,:].min(axis=axis)
+    
+    corr = ds[corr_name]
+    beam_index = get_dim_index(corr, beam_name)
+    
+    corr = ds[corr_name].min(axis=beam_index)
 
     logical_index = corr < thresh_1
     
@@ -283,7 +317,6 @@ def pimosCorrMagVelocitySetQC(rr, corr_name='corr', thresh_1=60, axis=2):
                            logical_index, 
                            1,
                           'pimosCorrMagVelocitySetQC threshold: {}'.format(thresh_1))
-
 
 def pimosPercentGoodVelocitySetRDIQC(rr, percent_good_name='percent_good', thresh_1 = 0):
     """
@@ -372,6 +405,20 @@ def strcmpi(lst, string):
     return rtn
     pass
 
+def get_dim_index(array, dim_name):
+    """
+    Find which axis of a DataArray corresponds to a certain dimension name.
+    """
+        
+    coord_names =[x for x in array.coords ]
+    dim_index =[i for i in np.arange(0, len(coord_names)) if coord_names[i]==dim_name]    
+    
+    if len(dim_index) == 1:
+        dim_index=dim_index[0]
+    else:
+        dim_index = None
+        
+    return dim_index
 
 
 class NotImplementedError(Exception):
