@@ -1,5 +1,8 @@
 # Database file in csv format
 deployment_metadata = KISSME_Instruments.csv
 
+# CTD log sheet
+ctd_log = KISSME2017_CTD_Logbook.csv
+
 # File containing possible date ranges for moorings
 possible_mooring_dates = possible_mooring_dates.csv

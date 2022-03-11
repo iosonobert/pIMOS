@@ -18,68 +18,91 @@ import pdb
 
 import importlib 
 
-from zutils.xrwrap import xrwrap
+import zutils.xrwrap as xrwrap
 import zutils.stats as zstats
 import zutils.file as zfile
 
-class WETLABS_NTU(xrwrap):
 
-    def __init__(self, infile, driver='pandas', attributes={}):
+def from_log(filename):
+    """
+    Spin up from serial log file
+    """
         
-        self.parse_infile(infile)
-        
-        self.driver_name = driver
+    skiprows=0
+    line = 'n'
+    with open(filename) as fop:
+        while not 'records to read' in line:
+            skiprows+=1
+            line = fop.readline()
+        pass
 
-        spam_loader = importlib.find_loader(driver)
-        if spam_loader is None:
-            raise(Exception('No module found for driver {}.'.format(driver)))
+    df = pd.read_csv(filename, skiprows=skiprows, delim_whitespace=True, names=['date', 'time', 'c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8', 'c9'])
 
-        self.driver = importlib.import_module(driver)
+    df.time = df.date + ' ' + df.time
+    df = df.drop(['date'], axis=1)
+    df.time = pd.to_datetime(df.time,dayfirst = True, format = "%m/%d/%y %H:%M:%S")
 
-        if driver.lower() in ['pandas']: 
-            self.read_raw_pd(attributes=attributes)
-        elif driver.lower() == 'xarray':
-            self.load(self.folder, self.file_)
-        else:
-            raise(Exception('{} is not a valid driver'.format(driver)))
+    df.drop(df.tail(1).index,inplace=True) 
 
-        self.update_global_attrs()
+    ds = df.set_index('time').to_xarray()
+
+    ds.attrs['raw_file_name']      = os.path.split(filename)[1]
+    ds.attrs['raw_file_directory'] = os.path.split(filename)[0]
+
+    rr = WETLABS_NTU(ds)
+
+    return rr, ds
+
+
+def from_netcdf(infile):
+    """
+    Pass straight to the main xrwrap from_netcdf method.
+    """
+   
+    classhandler = WETLABS_NTU
+
+    rr, ds = xrwrap._from_netcdf(infile, classhandler)
     
-    def update_global_attrs(self):
-        """
-        Each wrapper should overload this function
-        """
+    return rr, ds
 
-        # CF Compliance
-        print('Updating attributes function of the class.')
-        self.update_attribute('title', 'Measured data from a TDRI ADCP read from .PD0 files')
-        self.update_attribute('institution', 'UWA')
-        self.update_attribute('source', 'TDRI ADCP [Workhorse, Quartermaster, or Longranger]')
-        self.update_attribute('history', '')
-        self.update_attribute('references', '')
-        self.update_attribute('comment', '')
+##########################
+# Actual xarray wrap #####
+##########################
+class WETLABS_NTU(xrwrap.xrwrap):
+
+    # def __init__(self, infile, driver='pandas', attributes={}):
         
-    def read_raw_pd(self, attributes):
+    #     self.parse_infile(infile)
         
-        skiprows=0
-        line = 'n'
-        with open(self.fullpath) as fop:
-            while not 'records to read' in line:
-                skiprows+=1
-                line = fop.readline()
-            pass
+    #     self.driver_name = driver
 
-        df = pd.read_csv(self.fullpath, skiprows=skiprows, delim_whitespace=True, names=['date', 'time', 'c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8', 'c9'])
+    #     spam_loader = importlib.find_loader(driver)
+    #     if spam_loader is None:
+    #         raise(Exception('No module found for driver {}.'.format(driver)))
 
-        df.time = df.date + ' ' + df.time
-        df = df.drop(['date'], axis=1)
-        df.time = pd.to_datetime(df.time,dayfirst = True, format = "%m/%d/%y %H:%M:%S")
+    #     self.driver = importlib.import_module(driver)
 
-        df.drop(df.tail(1).index,inplace=True) 
+    #     if driver.lower() in ['pandas']: 
+    #         self.read_raw_pd(attributes=attributes)
+    #     elif driver.lower() == 'xarray':
+    #         self.load(self.folder, self.file_)
+    #     else:
+    #         raise(Exception('{} is not a valid driver'.format(driver)))
 
-        ds = df.set_index('time').to_xarray()
+    #     self.update_global_attrs()
 
-        self.ds = ds
+    def __init__(self, ds):
+        
+        print('Initialising accessor.')
+        self.ds = ds # XRWRAP compatibility
+
+        self.store_raw_file_attributes(ds)
+
+        class_attrs = {
+            'title': 'Measured data from a WetLABS serial log file',
+            'source': 'Wetlabs data Logger' # Could be more specific.
+        }
+        self.enforce_these_attrs(class_attrs)
         
     def _calibrate_device(self, device_file):
         """

@@ -240,7 +240,11 @@ def pimosEchoIntensitySimpleQC(rr, thresh_1=20, echo_name='echo', beam_name='bea
     """
 
     ds = rr.ds
-    echo = ds[echo_name].min(axis=axis)
+    
+    echo = ds[echo_name]
+
+    beam_index = get_dim_index(echo, beam_name)
+    echo = echo.min(axis=beam_index)
 
     logical_index = echo < thresh_1
     

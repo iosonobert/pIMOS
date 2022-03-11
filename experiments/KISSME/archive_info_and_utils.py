@@ -72,23 +72,33 @@ def read_db(dbconfig_file):
     db_config = parse_dbconfig(dbconfig_file)
 
     db_data = {}
-    if 'deployment_metadata' in db_config:
-        db_data['deployment_metadata'] = parse_deployment_metadata(db_config)
-    else:
-        raise(Exception('Config file incomplete'))
+    for log in ['deployment_metadata', 'ctd_log']:
+        if log in db_config:
+            db_data[log] = parse_db_csv(db_config, table_name=log)
+        else:
+            raise(Exception('Config file incomplete'))
         
     if 'possible_mooring_dates' in db_config:
         db_data['possible_mooring_dates'] = parse_possible_mooring_dates(db_config, recovered=None)
     else:
         raise(Exception('Config file incomplete'))
         
+        
     return db_data
+
+def parse_db_csv(db_config, table_name):
+
+    file = os.path.join(db_config['db_root'], db_config[table_name])
+    df = pd.read_csv(file)
+    
+    return df
 
 def parse_deployment_metadata(db_config):
 
-    file = os.path.join(db_config['db_root'], db_config['deployment_metadata'])
-    df = pd.read_csv(file)
-    
+    # file = os.path.join(db_config['db_root'], db_config['deployment_metadata'])
+    # df = pd.read_csv(file)
+    df = parse_db_csv(db_config, table_name='deployment_metadata')
+
     return df
 
 def parse_possible_mooring_dates(db_config, recovered=None):
@@ -153,7 +163,7 @@ def add_mooring_dates(db_data, mooring, ax):
     
     pass
 
-def pIMOS_export(rr, archive_dir, model, serial, csv=True):
+def pIMOS_export(rr, archive_dir, model, file_append=''):
     
     folder = os.path.join(archive_dir, model)
     if not os.path.exists(folder):
@@ -161,10 +171,8 @@ def pIMOS_export(rr, archive_dir, model, serial, csv=True):
 
     print(folder)
 
-    rr.folder = folder
-    rr.file_ = serial
-    if csv:
-        rr.export()
-    else:
-        rr.export(csv=csv)
+    # rr.folder = folder
+    # rr.file_ = serial
+    
+    rr.export( naming_method='convention', export_directory=folder)
         

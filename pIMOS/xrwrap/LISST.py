@@ -20,69 +20,22 @@ import pdb
 import datetime
 import os
 
-from zutils.xr import xrwrap
+import zutils.xrwrap as xrwrap
 from pIMOS.read import lisst as read_lisst
 
 font = {'weight' : 'normal',
         'size'   : 12}
 matplotlib.rc('font', **font)
 
-class LISST(xrwrap):
-    
-    folder = ''
-    file = ''
-    so = None
-    eo = None
-    
-    job = ''
-    trip = ''
-    
-    def __init__(self, folder, file_, attributes={}, model=None, method='csv'):
+def from_csv(filename):
         
-        self.folder = folder
-        self.file_ = file_
-        self.attributes = attributes
+        folder, file =  xrwrap.parse_infile(filename)
+        fullpath = os.path.join(folder, file)
 
-        if method.lower() in ['csv']: 
-            self.read(method=method)
-        elif method.lower() == 'nc':
-            raise(Exception('Must implement NC reading'))
-        elif method.lower() == 'xr':
-            raise(Exception('Must implement XR wrapping'))
-        else:
-            raise(Exception('Unknown method'))
-
-        self.update_global_attrs()
-        self.update_attributes_with_dict(attributes)
-
-    def update_global_attrs(self):
-        """
-        Each wrapper should overload this function
-        """
-
-        print('Setting default attributes of the class.')
-        self.update_attribute('title', 'Measured data from a Seabird Data Logger')
-        # self.update_attribute('institution', 'O2 Metocean')
-        self.update_attribute('source', 'Seabird Data Logger') # Could be more specific.
-        self.update_attribute('history', '')
-        # self.update_attribute('references', 'O2 Metocean QAQC Conventions; CF Conventions version 1.7')
-        self.update_attribute('comment', '')
-
-    def read_data(self, method):
-        
-        if method=='asc':
-            ds = read_sbd.parse_seabird_asc(self.fullpath)
-        if method=='cnv':
-            ds = read_sbd.parse_seabird_cnv(self.fullpath)
-
-        return ds
-
-    def read(self, method):
-        
         print('Reading info')
-        fields, units, dtype, bins_lower, bins_median = read_lisst.load_LISST_info(self.folder)
+        fields, units, dtype, bins_lower, bins_median = read_lisst.load_LISST_info(folder)
         print('Reading csv')
-        df = pd.read_csv(self.fullpath, header=None)
+        df = pd.read_csv(fullpath, header=None)
         print('Converting time')
         time_series = read_lisst.convert_LISST_time(df)
         print('Adding flags')
@@ -90,11 +43,46 @@ class LISST(xrwrap):
         print('Parsing csv')
         ds = read_lisst.parse_LISST_csv(df, fields, units, dtype, bins_lower)
 
-        self.ds = ds
+        ds.attrs['raw_file_name']      = os.path.split(filename)[1]
+        ds.attrs['raw_file_directory'] = os.path.split(filename)[0]
 
+        rr = LISST(ds)
         # This is using ALL Will's code - need to discuss c.f. compliance with Will
 
         # Associate QC Flags - will nead Need to discuss this with Will. 
         print('Done')
         
-        return self.ds
+        return rr, ds
+
+class LISST(xrwrap.xrwrap):
+    
+    # def __init__(self, folder, file_, attributes={}, model=None, method='csv'):
+        
+    #     self.folder = folder
+    #     self.file_ = file_
+    #     self.attributes = attributes
+
+    #     if method.lower() in ['csv']: 
+    #         self.read(method=method)
+    #     elif method.lower() == 'nc':
+    #         raise(Exception('Must implement NC reading'))
+    #     elif method.lower() == 'xr':
+    #         raise(Exception('Must implement XR wrapping'))
+    #     else:
+    #         raise(Exception('Unknown method'))
+
+    #     self.update_global_attrs()
+    #     self.update_attributes_with_dict(attributes)
+
+    def __init__(self, ds):
+        
+        print('Initialising accessor.')
+        self.ds = ds # XRWRAP compatibility
+
+        self.store_raw_file_attributes(ds)
+
+        class_attrs = {
+            'title': 'Measured data from a LISST Data Logger',
+            'source': 'LISST Data Logger' # Could be more specific.
+        }
+        self.enforce_these_attrs(class_attrs)
