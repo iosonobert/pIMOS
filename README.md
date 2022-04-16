@@ -2,6 +2,8 @@
 
 UWA Ocean Dynamics focussed python coding of IMOS tools. Click here for the [IMOS Wiki](https://github.com/aodn/imos-toolbox/wiki). 
 
+![](dirtworm.gif)
+
 The system consists of:
 
 1. A Deployment Database
