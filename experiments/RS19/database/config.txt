@@ -1,0 +1,8 @@
+# Database file in csv format
+deployment_metadata = ROWLEY_Instruments.csv
+
+# CTD log sheet
+ctd_log = ROWLEY_CTD_Logbook.csv
+
+# File containing possible date ranges for moorings
+possible_mooring_dates = ROWLEY_possible_mooring_dates.csv

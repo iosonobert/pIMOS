@@ -23,7 +23,6 @@ from datetime import datetime, timedelta
 import xarray as xray
 import os
 
-import pdb
 from pIMOS.utils import seabird_utils
 
 ##########
@@ -93,15 +92,19 @@ def parse_seabird_cnv(cnvfile, basetime=None):
             dtime = [datetime(2000, 1, 1) + timedelta(seconds=tseconds) for tseconds in tsec]
         elif time_code.lower() == 'times':
             dtime = [basetime + timedelta(seconds=tseconds) for tseconds in tsec]
+        elif time_code.lower() == 'timejv2':
+            jdays = (sb.array[:,tt]*86400.0*1e6).astype('timedelta64[us]')
+            basetime = np.datetime64(datetime(sb.yearbase,1,1))
+            dtime = basetime+jdays
         else:
-            raise(Exception("Not yet coded, return to the seabird manual for more into."))
+            raise(Exception("Reading {} not yet coded, return to the seabird manual for more into.".format(time_code.lower())))
 
     elif timevar == 'julian':
         jdays = (sb.array[:,tt]*86400.0*1e6).astype('timedelta64[us]')
         basetime = np.datetime64(datetime(sb.yearbase,1,1))
 
         dtime = basetime+jdays
-        pdb.set_trace()
+        # pdb.set_trace() # Rayson had this pdb line here 
 
     # Create an output dataset
     #ds = xray.Dataset(attrs=sb.attributes)

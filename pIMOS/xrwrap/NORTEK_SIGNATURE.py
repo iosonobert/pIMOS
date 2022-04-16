@@ -191,6 +191,7 @@ def from_ad2cp(filename, nens=None, dat=None, hasb=0):
     ds['distance'] = ds.cell*attrs['config:cell_size']+attrs['config:blanking']
     ds['height'] = ds.cell*attrs['config:cell_size']+attrs['config:blanking'] + hasb # This assumes upward looking. 
     
+    ds['echo'] = ds.echo.astype(float)
     ds.attrs = attrs
 
     rr = NORTEK_SIGNATURE(ds)
@@ -201,13 +202,15 @@ def from_ad2cp(filename, nens=None, dat=None, hasb=0):
 
     # Associate some QC flags
     rr.associate_qc_flag('vel_dolfyn', 'velocity')
+    rr.associate_qc_flag('vel_enu', 'velocity3')
+    rr.associate_qc_flag('vel_xyz', 'velocity3')
     rr.associate_qc_flag('temperature', 'temperature')
     rr.associate_qc_flag('pressure', 'pressure')
     rr.associate_qc_flag('heading', 'compass')
     rr.associate_qc_flag('pitch', 'tilt')
     rr.associate_qc_flag('roll', 'tilt')
 
-    return rr, ds   
+    return rr, rr.ds   
 
 
 
@@ -280,8 +283,12 @@ class NORTEK_SIGNATURE(xrwrap.xrwrap):
     #     return self.ds
         
     def _calc_rotations(self):
-        
-        XYZZ = beam2inst(self.ds.vel_dolfyn[0:4, :, :].values, self.T)
+        """
+        Calculate the earth and instrument velocities. This should follow beamwise QC.   
+        """
+
+        beam_vel = self.get_qaqc_var('vel_dolfyn')[0:4, :, :].values
+        XYZZ = beam2inst(beam_vel, self.T)
         self.ds.vel_xyz.values = XYZZ[0:3, :, :]
 
         hh = (self.ds['heading'])
@@ -311,7 +318,7 @@ class NORTEK_SIGNATURE(xrwrap.xrwrap):
         Get the 4 BEAM BEAM to INST Transformation Matrix
         """
         
-        T  = self._attrs['config:TransMatrix']
+        T  = self.get_raw_file_attributes()['config:TransMatrix']
         T = T.replace('[','');T=T.replace(']','');T=np.fromstring(T, dtype=float, sep=' ').reshape((4, 4))
         
         return T

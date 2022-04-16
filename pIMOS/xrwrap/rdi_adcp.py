@@ -10,6 +10,7 @@ from dolfyn.io import rdi
 
 # AZ commenting these out because cython is a pain. 
 # from transform import Transform, rdi_xyz_enu
+import warnings
 
 import xarray as xr
 import os
@@ -29,7 +30,7 @@ import importlib
 deg2rad = np.pi / 180.
 rad2deg = 180./np.pi
 
-def from_pdo(filename, rotate=False, mapbins=False):
+def from_pdo(filename, rotate=False, mapbins=False, verbose=False):
     """
     Read PD0 file with Dolfyn. 
     """
@@ -37,16 +38,16 @@ def from_pdo(filename, rotate=False, mapbins=False):
     # Load the raw binary data
     data = rdi.read_rdi(filename) # This would be Levi Kilcher's dat object
     
-    print(data)
-    print(data.config)
+    if verbose:
+        print(data)
+        print(data.config)
     
     # self._data = data # SHOULD NOT USE THIS AS AN ATTRIBUTE AS WON'T LOAD LATER.
 
     if not data.config.coord_sys == 'beam':
         raise(Exception('This is coded for beam only. Update to be more flexible.'))
 
-    for i in np.arange(0, 10):
-        print('CODED FOR BEAM ONLY.')
+    warnings.warn('WARNING: ADCP CODE PREPARED FOR BEAM COORDS ONLY.')
 
     # Override settings in the configuration dictionary
     # for kk in list(self.config_update.keys()):
@@ -135,12 +136,13 @@ def from_pdo(filename, rotate=False, mapbins=False):
     encoding = {}
     for var in var_names:
     #for var in ['beamvel']:
-        print('Converting variable: %s...'%var)
+        if verbose:
+            print('Converting variable: %s...'%var)
         
         coords = OrderedDict()
         for dd in adcp_vars[var]['dims']:
             coords.update({dd:adcp_dims[dd]})
-            
+
         V = xr.DataArray( adcp_vars[var]['data'],\
             dims=adcp_vars[var]['dims'],\
             name=var,\
@@ -184,9 +186,8 @@ def from_pdo(filename, rotate=False, mapbins=False):
     if False: # I don't know where the Dolfyn gets this info from. And thus, I don't trust this info. 
         rr.update_attribute('nominal_instrument_orientation', data.config['orientation'])
 
+    # 'DELETED THE ENCODING FROM MATT RAYSONs CODE. QUESTION FOR HIM.'
     # self.ds, self.encoding = self._to_xray(self._data)
-    for i in np.arange(0, 10):
-        print('DELETED THE ENCODING FROM MATT RAYSONs CODE. QUESTION FOR HIM.')
 
     
     return rr, ds
@@ -322,8 +323,7 @@ class RDI_ADCP_PD02(xrwrap.xrwrap):
 
         print('Rotating...')
         
-        for i in np.arange(0, 10):
-            print('SHOULD DO THIS FROM self.ds NOT self._data.')
+        warnings.warn('ROTATION WARNING: Should do rotations from self.ds NOT self._data.')
 
         # u, v, w, errvel,\
         # u_inst, v_inst, w_inst = \
@@ -417,12 +417,13 @@ class RDI_ADCP_PD02(xrwrap.xrwrap):
         # encoding = self.encoding
         for var in var_names:
         #for var in ['beamvel']:
-            print('Converting variable: %s...'%var)
+            if self.verbose:
+                print('Converting variable: %s...'%var)
             
             coords = OrderedDict()
             for dd in adcp_vars_rotation[var]['dims']:
                 coords.update({dd:adcp_dims[dd]})
-                
+
             V = xr.DataArray( adcp_vars_rotation[var]['data'],\
                 dims=adcp_vars_rotation[var]['dims'],\
                 name=var,\
@@ -454,11 +455,9 @@ class RDI_ADCP_PD02(xrwrap.xrwrap):
         Calculate the bin depths as a 2D array using the instrument pressure
         """
 
-        for i in np.arange(0, 10):
-            print('NEED AN INTERPOLATE PRESSURE OPTION, IN THE EVENT THAT P IS TAKEN FROM ANOTHER INST.')
+        warnings.warn('PRESSURE WARNING: should build an interpolate pressure warning to that P can be input from another source. In the event of pressure sensor failure.')
 
-        for i in np.arange(0, 10):
-            print('SHOULD READ ORIENTATION FROM THE ATTRIBUTES.')
+        warnings.warn('ATTRIBUTE WARNING: SHOULD READ ORIENTATION FROM THE ATTRIBUTES.')
 
         ds = self.ds
 
@@ -602,3 +601,28 @@ class RDI_ADCP_PD02(xrwrap.xrwrap):
 
     #     return ds, encoding
 
+    def pIMOS_assign_coords(self):
+        """
+        Assign some additional coords to the file. These coords use deployment knowledge, so are not available at first creation of the ds.  
+
+        Note: at the moment this doesn't alter the coords on any data variables.
+
+        Function can be called repeatedly, it simply overwrites any coords.
+
+        """
+
+        # First go to the parent funciton
+        xrwrap.xrwrap.pIMOS_assign_coords(self)
+
+        try:
+            if self.ds.attrs['nominal_instrument_orientation'].lower() == 'down':
+                sgn = -1
+            elif self.ds.attrs['nominal_instrument_orientation'].lower() == 'up':
+                sgn = 1
+            else:
+                raise(Exception('Fail'))
+            prof_z_nom = self.ds.attrs['nominal_site_depth'] + self.ds.attrs['nominal_instrument_height_asb'] + sgn*self.ds.distance
+            self.ds = self.ds.assign_coords({'prof_z_nom': prof_z_nom,})
+        except:
+            pass
+            

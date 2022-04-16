@@ -368,9 +368,6 @@ def beam2inst(beamvel, rotmat):
     #    rotmat = calc_beam_rotmatrix(adcpo.config.beam_angle,
     #                                 adcpo.config.beam_pattern == 'convex')
 
-    for i in np.arange(0, 10):
-        print('USE NP.MATMUL')
-
     u_inst = \
        beamvel[:,0,:] * rotmat[0, 0] +\
        beamvel[:,1,:] * rotmat[0, 1] +\
@@ -427,8 +424,6 @@ def inst2earth(u_inst, v_inst, w_inst,\
     cp = np.cos(p)
     sp = np.sin(p)
 
-    for i in np.arange(0, 10):
-        print('USE NP.MATMUL')
         
     u = (ch * cr + sh * sp * sr) * u_inst +\
                     (sh * cp) * v_inst +\

@@ -43,7 +43,7 @@ def pimosImpossibleDateQC():
 def pimosImpossibleLocationSetQC():
     raise(NotImplementedError)
 
-def pimosInOutWaterQC(rr, mooring, db_data, year_1=1990, year_n=2200, delete_raw=False):
+def pimosInOutWaterQC(rr, mooring, db_data, year_1=1990, year_n=2200, delete_raw=False, experiment='kissme', recovered='kissme_recovery'):
     """
     This differs somewhat from IMOS. It takes a mooring table with mooring in/out dates and QCs accordingly. 
     """
@@ -51,10 +51,13 @@ def pimosInOutWaterQC(rr, mooring, db_data, year_1=1990, year_n=2200, delete_raw
     df = db_data['possible_mooring_dates']
     
     # Hard Code This For Now
-    df = df.loc[strcmpi(df['Recovered'].values, 'kissme_recovery')]
-    df = df.loc[strcmpi(df['Experiment'].values, 'kissme')]
+    df = df.loc[strcmpi(df['Recovered'].values, recovered)]
+    df = df.loc[strcmpi(df['Experiment'].values, experiment)]
     
     df = df.loc[strcmpi(df['Mooring'].values, mooring)]
+
+    if df.shape[0] == 0:
+        raise(Exception("Could not find dates for this mooring. {} {} {}". format(experiment, recovered, mooring)))
 
     start_date = df['StartDate'].values[0]
     end_date = df['EndDate'].values[0]
@@ -180,7 +183,7 @@ def pimosTiltVelocitySetQC(rr, thresh_1):
     
     raise(NotImplementedError)
 
-def pimosTiltVelocitySimpleQC(rr, thresh_1=22, method='max'):
+def pimosTiltVelocitySimpleQC(rr, thresh_1=22, method='max', flag_name='qc_velocity'):
     """
     Here we use a much simpler single threshold. The object must have a  "_calc_tilt" method that returns the instrument tilt. 
     """
@@ -191,7 +194,7 @@ def pimosTiltVelocitySimpleQC(rr, thresh_1=22, method='max'):
 
     logical_index = tilt > thresh_1
     
-    rr.update_qc_flag_logical('qc_velocity', 
+    rr.update_qc_flag_logical(flag_name, 
                            'time', 
                            logical_index, 
                            1,
@@ -296,7 +299,7 @@ def pimosFishDetectionVerticalQC(rr, thresh_1=20, echo_name='echo', axis=2):
     """
     raise(NotImplementedError)
 
-def pimosCorrMagVelocitySetQC(rr, thresh_1=60, corr_name='corr', beam_name='beam'):
+def pimosCorrMagVelocitySetQC(rr, thresh_1=60, corr_name='corr', beam_name='beam', flag_name='qc_velocity'):
     """
     imosCorrMagVelocitySetQC test checks that there is sufficient signal to noise ratio to obtain good quality data via the measure of a 
     pulse-to-pulse correlation in a ping. At each bin, if at least 2 beams see their correlation value greater than a threshold value then 
@@ -316,13 +319,13 @@ def pimosCorrMagVelocitySetQC(rr, thresh_1=60, corr_name='corr', beam_name='beam
 
     logical_index = corr < thresh_1
     
-    rr.update_qc_flag_logical('qc_velocity', 
+    rr.update_qc_flag_logical(flag_name, 
                            'time', 
                            logical_index, 
                            1,
                           'pimosCorrMagVelocitySetQC threshold: {}'.format(thresh_1))
 
-def pimosPercentGoodVelocitySetRDIQC(rr, percent_good_name='percent_good', thresh_1 = 0):
+def pimosPercentGoodVelocitySetRDIQC(rr, percent_good_name='percent_good', thresh_1 = 0, flag_name='qc_velocity'):
     """
     imosPercentGoodVelocitySetQC test checks that the percentage of good 3 beams and 4 beams solutions is greater than a certain threshold. 
     A percentage of bad solution is based on low correlation and fish detection. 
@@ -346,14 +349,14 @@ def pimosPercentGoodVelocitySetRDIQC(rr, percent_good_name='percent_good', thres
 
     logical_index = percent_good_34 < thresh_1
 
-    rr.update_qc_flag_logical('qc_velocity', 
+    rr.update_qc_flag_logical(flag_name, 
                             'time', 
                             logical_index, 
                             1,
                             'pimosPercentGoodVelocitySetRDIQC threshold: {}'.format(thresh_1))
 
 
-def pimosErrorVelocitySetQC(rr, errvel_name='errvel', thresh_1=0.25):
+def pimosErrorVelocitySetQC(rr, errvel_name='errvel', thresh_1=0.25, flag_name='qc_velocity'):
     """
     imosErrorVelocitySetQC test checks that the horizontal error velocity (difference between two independant estimates, basically two pair of beams) 
     is smaller than a certain threshold so that the assumption of hozontal flow homogeneity is reasonable. 
@@ -368,7 +371,7 @@ def pimosErrorVelocitySetQC(rr, errvel_name='errvel', thresh_1=0.25):
 
     logical_index = errvel > thresh_1
     
-    rr.update_qc_flag_logical('qc_velocity', 
+    rr.update_qc_flag_logical(flag_name, 
                            'time', 
                            logical_index, 
                            1,
