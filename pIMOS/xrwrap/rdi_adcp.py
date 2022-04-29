@@ -208,56 +208,10 @@ def from_netcdf(infile):
 ##########################
 class RDI_ADCP_PD02(xrwrap.xrwrap):
 
-    # def __init__(self, infile, rotate=False, \
-    #              driver='dolfyn',\
-    #              mapbins=False, config_update = {},
-    #              nens=None, attributes={}):
-    #     """
-    #     Inputs:
-    #     -----
-    #             infile - File to load. Can be a string containing the full path, or a 2 element iterable with [folder, file]. 
-    #                         File type will depend on the driver. RDI binary or a netcdf file.
-    #             rotate - [False] option to rotate
-    #             config_update - dictionary with keys to replace in the ADCP config file
-
-    #     """
-
-    #     self.parse_infile(infile)
-
-    #     self.driver_name = driver
-
-    #     spam_loader = importlib.find_loader(driver)
-    #     if spam_loader is None:
-    #         raise(Exception('No module found for driver {}.'.format(driver)))
-
-    #     self.driver = importlib.import_module(driver)
-
-    #     self.rotate = rotate
-    #     self.mapbins = mapbins
-    #     self.config_update = config_update # I'm not sure why this needs to be here. A question for Matt Rayson. 
-
-    #     if driver.lower() in ['dolfyn', 'dallsporpoise']: 
-    #         self.read_pd0_dd(self.folder, self.file_, attributes=attributes, nens=nens)
-    #     elif driver.lower() == 'xarray':
-    #         self.load(self.folder, self.file_)
-    #     else:
-    #         raise(Exception('{} is not a valid driver'.format(driver)))
-
-    #     self.update_global_attrs()
-    
-    # def update_global_attrs(self):
-    #     """
-    #     Each wrapper should overload this function
-    #     """
-
-    #     # CF Compliance
-    #     print('Updating attributes function of the class.')
-    #     self.update_attribute('title', 'Measured data from a TDRI ADCP read from .PD0 files')
-    #     self.update_attribute('institution', 'UWA')
-    #     self.update_attribute('source', 'TDRI ADCP [Workhorse, Quartermaster, or Longranger]')
-    #     self.update_attribute('history', '')
-    #     self.update_attribute('references', '')
-    #     self.update_attribute('comment', '')
+    class_attrs = {
+            'title': 'Measured data from a TDRI ADCP',
+            'source': 'pIMOS' # Could be more specific.
+        }
 
     def __init__(self, ds):
         
@@ -265,12 +219,8 @@ class RDI_ADCP_PD02(xrwrap.xrwrap):
         self.ds = ds # XRWRAP compatibility
 
         self.store_raw_file_attributes(ds)
-
-        class_attrs = {
-            'title': 'Measured data from a TDRI ADCP',
-            'source': 'TDRI ADCP [Workhorse, Quartermaster, or Longranger]' # Could be more specific.
-        }
-        self.enforce_these_attrs(class_attrs)
+        
+        self.enforce_these_attrs(self.class_attrs)
 
     # def export(self, final=False, final_folder=None, csv=True):
     #     """
@@ -338,6 +288,10 @@ class RDI_ADCP_PD02(xrwrap.xrwrap):
         #         self._data.config['coord_sys'],
         #         mapbins)
 
+        ori = self.rawattrs['orientation']
+        ori = self.attrs['nominal_instrument_orientation']
+        print('ROTATING ON THE ASSUMPTION OF INSTR FACING {}'.format(ori))
+
         beamvel = self.ds['beamvel'].values.astype('float64').transpose([2, 0, 1]) # Get back to the order it wants
         u, v, w, errvel,\
         u_inst, v_inst, w_inst = \
@@ -348,7 +302,7 @@ class RDI_ADCP_PD02(xrwrap.xrwrap):
                 self.ds['roll'].values.astype('float64'),\
                 float(self.rawattrs['beam_angle']),\
                 self.rawattrs['beam_pattern'],
-                self.rawattrs['orientation'], 
+                ori, 
                 self.rawattrs['coord_sys'],\
                 mapbins)
                 

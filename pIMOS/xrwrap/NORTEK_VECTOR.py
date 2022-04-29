@@ -25,7 +25,7 @@ font = {'weight' : 'normal',
         'size'   : 15}
 matplotlib.rc('font', **font)
 
-def from_vec(filename, nens=None, driver='dolfyn'):
+def from_vec(filename, nens=None, driver='dolfyn', debug=False):
     """
     Read vector with either Dolfyn of Dall's porpoise. 
     """
@@ -33,7 +33,8 @@ def from_vec(filename, nens=None, driver='dolfyn'):
     if type(filename) == list:
         raise(Exception("Reading muyltiple files no longer supported"))
             
-    ds, dat = read_vec_dd_single(filename, driver=driver, nens=nens)
+        
+    ds, dat = read_vec_dd_single(filename, driver=driver, nens=nens, debug=debug)
 
     # New version of dolfyn outputs timezone aware pandas timestamp objects 
     # this breaks everything so we must convert to np.datetime64
@@ -172,7 +173,7 @@ def from_vec(filename, nens=None, driver='dolfyn'):
 
     return rr, ds
 
-def read_vec_dd_single(filename, driver, nens=None):
+def read_vec_dd_single(filename, driver, nens=None, debug=True):
 
     # Read with either dolfyn or dallsporpoise 
     
@@ -192,7 +193,7 @@ def read_vec_dd_single(filename, driver, nens=None):
 
     # Get away from this multiple file reading
     # dat = self.driver.read(self.fullpath(i), nens=nens)
-    dat = driver.read(filename, nens=nens)
+    dat = driver.read(filename, nens=nens, debug=debug)
 
     print('Converting mpltime to date. Expect delays!')
     time = dat.mpltime
@@ -215,51 +216,11 @@ def read_vec_dd_single(filename, driver, nens=None):
     
 class NORTEK_VECTOR(xrwrap.xrwrap):
 
-    first_good = None
-    last_good = None
-    
-    # def __init__(self, folder=None, file_=None, attributes={}, nens=None, dat=None, driver='dolfyn'):
-    #     """
-    #     folder - folder where file is located
-    #     file_  - file to read
-        
-    #     ** OPTIONAL 
-    #         - nens - [only used if the vec driver is selected]. Number of ensembles to read 
-    #                 - None for whole file
-    #                 - int for an integer number of files
-    #                 - or [int, int] for [start_ens, end_ens] 
-    #         - dat - add the lkilcher.dolfyn dat file, if the dat driver is chosen
-    #     """
 
-    #     spam_loader = importlib.find_loader(driver)
-    #     if spam_loader is None:
-    #         raise(Exception('No module found for driver {}.'.format(driver)))
-
-    #     self.driver = importlib.import_module(driver)
-                
-    #     if driver.lower() in ['dolfyn', 'dallsporpoise']: 
-    #         self.read_vec_dd(folder, file_, attributes=attributes, nens=nens)
-    #     elif driver.lower() == 'xarray':
-    #         self.load(folder, file_)
-    #         # self.__outname = file_ # Keep this name.
-    #     else:
-    #         raise(Exception('{} is not a valid driver'.format(driver)))
-
-    #     self.update_global_attrs()
-
-    # def update_global_attrs(self):
-    #     """
-    #     Each wrapper should overload this function
-    #     """
-
-    #     # CF Compliance
-    #     print('Updating attributes function of the class.')
-    #     self.update_attribute('title', 'Measured data from a Nortek Vector ADV read from .VEC files')
-    #     self.update_attribute('institution', 'UWA')
-    #     self.update_attribute('source', 'Nortek Vector ADV')
-    #     self.update_attribute('history', '')
-    #     self.update_attribute('references', '')
-    #     self.update_attribute('comment', '')
+    class_attrs = {
+            'title': 'Measured data from a Nortek Vector',
+            'source': 'pIMOS' 
+        }
 
     def __init__(self, ds):
         
@@ -268,19 +229,24 @@ class NORTEK_VECTOR(xrwrap.xrwrap):
 
         self.store_raw_file_attributes(ds)
 
-        class_attrs = {
-            'title': 'Measured data from a Nortek Vector',
-            'source': 'Nortek Vector ADV' # Could be more specific.
-        }
-        self.enforce_these_attrs(class_attrs)
+        self.enforce_these_attrs(self.class_attrs)
 
-    def to_pto(self, date_lims=[None, None], pitch=None, roll=None, heading=None, ori='up'):
-
+    def to_pto(self, pitch=None, roll=None, heading=None, ori='up', date_lims=[None, None], **kwargs):
         """
-        This is really inefficient. Need to get datatimes into the reading by default. Do this with timedeltas, should be fast. 
-        
-        SHOULD GET ORI FROM THE FILE!! 
-        
+        Return a turbo_tools point turbulence object for turbulence calcs etc. 
+
+        NOTE: turbo_tools point turbulence objects currently only support fixed instruments
+
+        Inputs:
+            pitch: [float]. Constant pitch to use for the rotations. Default is None, in which case the record average will be used.   
+            roll:  [float]. Constant roll to use for the rotations. Default is None, in which case the record average will be used. 
+            roll:  [float]. Constant roll to use for the rotations. Default is None, in which case the record average will be used. 
+            ori:   [str]{'up', 'down}. Orientation of the vector [the body, not the head] to use for the rotations. Default is 'up'.  
+
+        Additional inputs for further processing.
+             phase_unwrap: [bool] whether or not to include phase unwrapping
+             despike:      [bool] whether or not to include despiking
+             calc_mean:    [bool] whether or not to calculate mean quantities
         """    
 
         adv_object = importlib.import_module('turbo_tools.classes.adv_object') 
@@ -294,11 +260,13 @@ class NORTEK_VECTOR(xrwrap.xrwrap):
             index = np.arange(ind1[0], ind2[-1]+1)
             ds_ = ds_.isel({'time':index})
         
+        fs = self.get_raw_file_attributes()['config:fs']
+
         pto = adv_object.PointTurbulenceClass(ds_.time, 
                                 ds_.vel_dolfyn[0, :], 
                                 ds_.vel_dolfyn[1, :], 
                                 ds_.vel_dolfyn[2, :], 
-                                fs=ds_.attrs['config:fs'],
+                                fs=fs,
                                 set_time=ds_.datetime.values)
         
         # Works for fixed instruments only
@@ -310,7 +278,26 @@ class NORTEK_VECTOR(xrwrap.xrwrap):
             roll = float(np.median(ds_['roll'].values))
         
         pto.set_orientation(heading, pitch, roll, ori)
+
+
+        ########################
+        # ADDITIONAL PROCESING #
+        ########################
+        phase_unwrap = kwargs.pop('phase_unwrap', False)
+        despike      = kwargs.pop('despike', False)
+        calc_mean    = kwargs.pop('calc_mean', False)
+
+        if phase_unwrap:
+            print('Running unwrap')
+            pto.clean_unwrap(block_length_seconds=600)
+        if despike:
+            print('Running despike')
+            pto.clean_despike(block_length_seconds=120)
+        if calc_mean:
+            print('Running mean calcs')
+            pto.calculate_mean_enu()
         
+        print('PTO complete')
         return pto
 
     def clean(self):

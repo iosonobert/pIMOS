@@ -1,8 +1,8 @@
-# Database file in csv format
-deployment_metadata = pIMOS_KISSME_Instruments.csv
+# Autonomous inst log sheet in csv format
+autonomous_metadata = pIMOS_KISSME_Instruments.csv
 
-# CTD log sheet
-ctd_log = pIMOS_KISSME2017_CTD_Logbook.csv
+# Profiling inst log sheet in csv format
+profiler_metadata = pIMOS_KISSME2017_CTDVMP_Logbook.csv
 
 # File containing possible date ranges for moorings
 possible_mooring_dates = pIMOS_possible_mooring_dates.csv

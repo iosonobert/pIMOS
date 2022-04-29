@@ -212,33 +212,12 @@ def from_ad2cp(filename, nens=None, dat=None, hasb=0):
 
     return rr, rr.ds   
 
-
-
 class NORTEK_SIGNATURE(xrwrap.xrwrap):
     
-    # def __init__(self, infile, driver='dolfyn', nens=None, dat=None, hasb=0, attributes={}):
-    #     """
-    #     hasb is the height above seabed
-    #     """
-    #     self.parse_infile(infile)
-        
-    #     self.driver_name = driver
-    #     print(driver)
-        
-    #     spam_loader = importlib.find_loader(driver)
-    #     if spam_loader is None:
-    #         raise(Exception('No module found for driver {}.'.format(driver)))
-
-    #     self.driver = importlib.import_module(driver)
-
-    #     if driver.lower() in ['dolfyn']: 
-    #         self.read_d(dat=dat, nens=nens, hasb=0, attributes=attributes)
-    #     elif driver.lower() == 'xarray':
-    #         self.load(self.folder, self.file_)
-    #     else:
-    #         raise(Exception('{} is not a valid driver'.format(driver)))
-
-    #     self.update_global_attrs()
+    class_attrs = {
+            'title': 'Measured data from a Nortek Signature',
+            'source': 'pIMOS' 
+        }
 
     def __init__(self, ds):
         
@@ -247,14 +226,8 @@ class NORTEK_SIGNATURE(xrwrap.xrwrap):
 
         self.store_raw_file_attributes(ds)
 
-        class_attrs = {
-            'title': 'Measured data from a Nortek Signature',
-            'source': 'Nortek Signature ADCP' # Could be more specific.
-        }
-        self.enforce_these_attrs(class_attrs)
+        self.enforce_these_attrs(self.class_attrs)
         
-    
-    
     # def export(self, final=False, final_folder=None, csv=True):
     #     """
     #     Overloading the base class export function.
@@ -339,5 +312,42 @@ class NORTEK_SIGNATURE(xrwrap.xrwrap):
         else:
             raise(Exception("Unrecognised method."))
   
+    def to_pto(self, **kwargs):
+        """
+        Return a turbo_tools turbulence PROFILER object for turbulence calcs etc. 
+
+        NOTE: requires ENU velocities. This is different to how the vector is handled.  
+
+        Inputs:
+            none
+
+        Additional inputs for further processing.
+             calc_mean:    [bool] whether or not to calculate mean quantities
+        """    
+
+        adcp_object = importlib.import_module('turbo_tools.classes.adcp_object') 
+
+        ds_ = self.ds
+
+        fs = self.get_raw_file_attributes()['config:fs']
+        tpo = adcp_object.TurbulenceProfilerClass(ds_.time.values, 
+                              ds_.distance.values, 
+                              ds_.vel_enu[0, :, :].values, 
+                              ds_.vel_enu[1, :, :].values, 
+                              ds_.vel_enu[2, :, :].values, 
+                              ds_.echo[4, :, :].values, fs=fs)
+
+        ########################
+        # ADDITIONAL PROCESING #
+        ########################
+        calc_mean    = kwargs.pop('calc_mean', False)
+
+        if calc_mean:
+            print('Running mean calcs')
+            tpo.re_avg()
+
+        
+        print('TPO complete')
+        return tpo
 
 # signature = NORTEK_SIGNATURE(fullpath, dat=signature.dat, nens=nens)

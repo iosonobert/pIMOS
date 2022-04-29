@@ -1,3 +1,3 @@
-# KISSME Processing
+# Rowley Shoals 2019 Processing
 
-KISSME processing specific README 
+RS19 processing specific README 

@@ -415,6 +415,7 @@ def inst2earth(u_inst, v_inst, w_inst,\
     if declination is not None:
         h += declination * deg2rad
     if orientation == 'up':
+        print('Adding pi to roll for up facing instrument')
         r += np.pi
 
     ch = np.cos(h)

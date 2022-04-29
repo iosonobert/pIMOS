@@ -4,6 +4,7 @@ import os
 import pandas as pd
 import numpy as np
 import zutils.plotting as zplot
+import warnings
 
 """
 Various tools that should be pIMOS tools, but that I have not officially found a spot for yet. 
@@ -45,16 +46,18 @@ def read_db(dbconfig_file):
     db_config = parse_dbconfig(dbconfig_file)
 
     db_data = {}
-    for log in ['deployment_metadata', 'ctd_log']:
+    for log in ['autonomous_metadata', 'profiler_metadata']:
         if log in db_config:
             db_data[log] = parse_db_csv(db_config, table_name=log)
         else:
             raise(Exception('Config file incomplete'))
-        
+            
     if 'possible_mooring_dates' in db_config:
         db_data['possible_mooring_dates'] = parse_possible_mooring_dates(db_config, recovered=None)
     else:
         raise(Exception('Config file incomplete'))
+        
+    
         
         
     return db_data
@@ -119,7 +122,7 @@ def plot_echo(rr, db_data, mooring, attributes, variable='echo', width=65, cmap=
     return fig
 
 
-def plot_temp(rr, db_data, mooring, attributes, variable='Temperature', plotraw=True, width=65):
+def plot_temp(rr, db_data, mooring, attributes, variable='Temperature', plotraw=True, width=65, experiment='rs2019', recovered='rs19_rec'):
     
     #%matplotlib inline
     fig = plt.figure(figsize=(20,3))
@@ -142,7 +145,8 @@ def plot_temp(rr, db_data, mooring, attributes, variable='Temperature', plotraw=
     title= ' | '.join([str(attributes[i]) for i in attributes])
     plt.title(title)
     
-    add_mooring_dates(db_data, mooring, plt.gca())
+    if not rr.attrs['is_profile_data']:
+        add_mooring_dates(db_data, mooring, plt.gca(), experiment=experiment, recovered=recovered)
     plt.show()
     
     return fig
@@ -181,7 +185,16 @@ def pIMOS_export(rr, archive_dir, model, file_append=''):
     rr.export( naming_method='convention', export_directory=folder)
         
 def row_to_attrs(row):
-    
+    """
+    Alias for autonomous_row_to_attrs
+    """
+
+    return autonomous_row_to_attrs(row)
+
+def autonomous_row_to_attrs(row):
+    """
+    Take a row from the autonomous instrument metadata log and return a pIMOS-ready attributes dict. 
+    """
     attributes =  {
         'project': row['Project'],
         'trip': row['Trip Recovered'],
@@ -196,6 +209,38 @@ def row_to_attrs(row):
         'instrument_model': row['InstrumentType'],
         'instrument_serial_number': row['SerialNo'],
         }
+
+    if row['Type'].lower() == 'moored':
+        attributes['is_profile_data'] = 0
+    elif row['Type'].lower() in['profile', 'profileaux' ]:
+        attributes['is_profile_data'] = 1
+    else:
+        warnings.warn('Unrecognised enntry in Type column: {}'.format(row['Type'].lower()) )
+
+    for att in attributes:
+        if isinstance(attributes[att], str):
+            attributes[att] = attributes[att].strip()
+        elif np.isnan(attributes[att]):
+            attributes[att] = ''
+
+    return attributes
+
+    
+def profiler_row_to_attrs(row):
+    """
+    Take a row from the profiling instrument metadata log and return a pIMOS-ready attributes dict. 
+    """
+    attributes = {
+        'project': row['Project'],
+        'raw_file_name': row['Filename'],
+        'site_station': row['StationID'],
+        'trip': row['Trip'],
+        'is_profile_data': 1,
+        'timezone': 'UTC',
+        'instrument_model':  row['InstrumentType'],
+        'nominal_latitude': row['Profiler in [Lat]'],
+        'nominal_longitude': row['Profiler in [Lon]'],
+        'nominal_site_depth': row['Total Depth (m)']}
 
     for att in attributes:
         if isinstance(attributes[att], str):

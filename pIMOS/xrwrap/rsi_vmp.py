@@ -113,6 +113,11 @@ class RSI_VMP(xrwrap.xrwrap):
     """
     Accessor for the RSI VMP. 
     """
+    class_attrs = {
+            'title': 'Measured data from a RSI VMP read from .P file',
+            'source': 'RSI VMP'
+        }
+
     def __init__(self, ds):
         
         print('Initialising accessor.')
@@ -121,14 +126,9 @@ class RSI_VMP(xrwrap.xrwrap):
         self.ds = ds # XRWRAP compatibility
 
         self.store_raw_file_attributes(ds)
-        self.update_global_attrs()
+        # self.update_global_attrs()
 
-        class_attrs = {
-            'title': 'Measured data from a RSI VMP read from .P file',
-            'source': 'RSI VMP'
-        }
-
-        self.enforce_these_attrs(class_attrs)
+        self.enforce_these_attrs(self.class_attrs)
         
         pass
     

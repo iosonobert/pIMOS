@@ -70,26 +70,10 @@ def from_netcdf(infile):
 ##########################
 class WETLABS_NTU(xrwrap.xrwrap):
 
-    # def __init__(self, infile, driver='pandas', attributes={}):
-        
-    #     self.parse_infile(infile)
-        
-    #     self.driver_name = driver
-
-    #     spam_loader = importlib.find_loader(driver)
-    #     if spam_loader is None:
-    #         raise(Exception('No module found for driver {}.'.format(driver)))
-
-    #     self.driver = importlib.import_module(driver)
-
-    #     if driver.lower() in ['pandas']: 
-    #         self.read_raw_pd(attributes=attributes)
-    #     elif driver.lower() == 'xarray':
-    #         self.load(self.folder, self.file_)
-    #     else:
-    #         raise(Exception('{} is not a valid driver'.format(driver)))
-
-    #     self.update_global_attrs()
+    class_attrs = {
+            'title': 'Measured data from a WetLABS data logger',
+            'source': 'pIMOS' # Could be more specific.
+        }
 
     def __init__(self, ds):
         
@@ -98,11 +82,7 @@ class WETLABS_NTU(xrwrap.xrwrap):
 
         self.store_raw_file_attributes(ds)
 
-        class_attrs = {
-            'title': 'Measured data from a WetLABS serial log file',
-            'source': 'Wetlabs data Logger' # Could be more specific.
-        }
-        self.enforce_these_attrs(class_attrs)
+        self.enforce_these_attrs(self.class_attrs)
         
     def _calibrate_device(self, device_file):
         """

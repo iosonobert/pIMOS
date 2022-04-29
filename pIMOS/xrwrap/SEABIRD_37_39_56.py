@@ -76,16 +76,12 @@ def from_netcdf(infile):
 # Actual xarray wrap #####
 ##########################
 class SEABIRD_37_39_56(xrwrap.xrwrap):
-    
-    # folder = ''
-    # file = ''
 
-    so = None
-    eo = None
-    
-    job = ''
-    trip = ''
-   
+    class_attrs = {
+            'title': 'Measured data from a Seabird Data Logger',
+            'source': 'Seabird Data Logger' # Could be more specific.
+        }
+
     def __init__(self, ds):
         
         print('Initialising accessor.')
@@ -93,11 +89,7 @@ class SEABIRD_37_39_56(xrwrap.xrwrap):
 
         self.store_raw_file_attributes(ds)
 
-        class_attrs = {
-            'title': 'Measured data from a Seabird Data Logger',
-            'source': 'Seabird Data Logger' # Could be more specific.
-        }
-        self.enforce_these_attrs(class_attrs)
+        self.enforce_these_attrs(self.class_attrs)
 
 
     def add_variable_attributes(self):
@@ -106,7 +98,6 @@ class SEABIRD_37_39_56(xrwrap.xrwrap):
         """
         ds = self.ds
 
-        # Ultimately I'll need to modify this to be more dynamic. This is why we call it crude_readers.
         if 'Temperature' in ds.data_vars:
             ds['Temperature'].attrs['long_name'] = 'seawater_temperature'
             ds['Temperature'].attrs['standard_name'] = 'seawater_temperature'
@@ -135,5 +126,6 @@ class SEABIRD_37_39_56(xrwrap.xrwrap):
             ds['Depth'].attrs['standard_name'] = 'pressure_sensor_depth_below_sea_surface'
             ds['Depth'].attrs['units'] = 'm'
             self.associate_qc_flag('Depth', 'Pressure')
+
 
         return self.ds

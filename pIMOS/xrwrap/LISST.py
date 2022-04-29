@@ -56,23 +56,10 @@ def from_csv(filename):
 
 class LISST(xrwrap.xrwrap):
     
-    # def __init__(self, folder, file_, attributes={}, model=None, method='csv'):
-        
-    #     self.folder = folder
-    #     self.file_ = file_
-    #     self.attributes = attributes
-
-    #     if method.lower() in ['csv']: 
-    #         self.read(method=method)
-    #     elif method.lower() == 'nc':
-    #         raise(Exception('Must implement NC reading'))
-    #     elif method.lower() == 'xr':
-    #         raise(Exception('Must implement XR wrapping'))
-    #     else:
-    #         raise(Exception('Unknown method'))
-
-    #     self.update_global_attrs()
-    #     self.update_attributes_with_dict(attributes)
+    class_attrs = {
+            'title': 'Measured data from a LISST Data Logger',
+            'source': 'pIMOS' # Could be more specific.
+        }
 
     def __init__(self, ds):
         
@@ -81,8 +68,5 @@ class LISST(xrwrap.xrwrap):
 
         self.store_raw_file_attributes(ds)
 
-        class_attrs = {
-            'title': 'Measured data from a LISST Data Logger',
-            'source': 'LISST Data Logger' # Could be more specific.
-        }
-        self.enforce_these_attrs(class_attrs)
+        
+        self.enforce_these_attrs(self.class_attrs)
