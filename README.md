@@ -2,7 +2,7 @@
 
 UWA Ocean Dynamics focussed python coding of IMOS tools. Click here for the [IMOS Wiki](https://github.com/aodn/imos-toolbox/wiki). 
 
-![](dirtworm.gif)
+<!-- ![](dirtworm.gif) -->
 ![](dirtworm_strong.gif)
 
 The system consists of:
