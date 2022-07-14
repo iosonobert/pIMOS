@@ -1,8 +1,0 @@
-# Autonomous inst log sheet in csv format
-autonomous_metadata = pIMOS_KISSME_Instruments.csv
-
-# Profiling inst log sheet in csv format
-profiler_metadata = pIMOS_KISSME2017_CTDVMP_Logbook.csv
-
-# File containing possible date ranges for moorings
-possible_mooring_dates = pIMOS_possible_mooring_dates.csv
