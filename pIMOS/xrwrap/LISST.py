@@ -5,9 +5,6 @@ Created on Mon Jul 30 15:17:42 2018
 """
 #%%
 
-
-#%%
-
 import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
