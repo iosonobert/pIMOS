@@ -20,7 +20,9 @@ from os import listdir
 import os
 
 from zutils.time import num2date_lk as num2date_lk
-import zutils.xrwrap as xrwrap
+
+# import zutils.xrwrap as xrwrap
+import pIMOS.xrwrap.xrwrap as xrwrap
 
 from pIMOS.utils.nortek_signature_utils import beam2inst, inst2earth
 

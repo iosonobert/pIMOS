@@ -20,7 +20,8 @@ import pdb
 import datetime
 import os
 
-import zutils.xrwrap as xrwrap
+# import zutils.xrwrap as xrwrap
+import pIMOS.xrwrap.xrwrap as xrwrap
 import pIMOS.read.SEABIRD_CTD as read_sbdctd
 
 font = {'weight' : 'normal',

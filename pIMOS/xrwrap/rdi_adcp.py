@@ -20,7 +20,9 @@ import numpy as np
 from scipy.interpolate import interp1d
 
 from matplotlib.dates import num2date, date2num
-import zutils.xrwrap as xrwrap 
+# import zutils.xrwrap as xrwrap
+import pIMOS.xrwrap.xrwrap as xrwrap
+
 import zutils.time as ztime
 
 from ..utils import rdi_adcp_utils as rdi_adcp_utils

@@ -17,7 +17,9 @@ import pdb
 import datetime
 import os
 
-import zutils.xrwrap as xrwrap
+# import zutils.xrwrap as xrwrap
+import pIMOS.xrwrap.xrwrap as xrwrap
+
 from pIMOS.read import lisst as read_lisst
 
 font = {'weight' : 'normal',
