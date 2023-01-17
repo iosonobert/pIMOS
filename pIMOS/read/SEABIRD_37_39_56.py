@@ -36,7 +36,7 @@ sbdvars = {'Conductivity':
     	    {'units':'decibars','long_name':'pressure'},	
          }
 
-def parse_seabird_cnv(cnvfile, basetime=None):
+def parse_seabird_cnv(cnvfile, basetime=None, jdate_bug_fix=False):
     """
      Read a seabird cnv file and return a dictionary with each variable
      as a mypandas.TimeSeries class
@@ -93,14 +93,32 @@ def parse_seabird_cnv(cnvfile, basetime=None):
         elif time_code.lower() == 'times':
             dtime = [basetime + timedelta(seconds=tseconds) for tseconds in tsec]
         elif time_code.lower() == 'timejv2':
-            jdays = (sb.array[:,tt]*86400.0*1e6).astype('timedelta64[us]')
+            doy = sb.array[:,tt]
+            if jdate_bug_fix:
+                doy -= 1
+                print('Fixing the jdate bug.')
+            else:
+                print('Not fixing the jdate bug.')
+            jdays = (doy*86400.0*1e6).astype('timedelta64[us]')
             basetime = np.datetime64(datetime(sb.yearbase,1,1))
             dtime = basetime+jdays
         else:
             raise(Exception("Reading {} not yet coded, return to the seabird manual for more into.".format(time_code.lower())))
 
     elif timevar == 'julian':
-        jdays = (sb.array[:,tt]*86400.0*1e6).astype('timedelta64[us]')
+        """
+        This looks a lot more like the day of the year than Julian days. And the DOY seems to be wrong for (at least some) Pilbara 2091 files. 
+        """
+        
+        doy = sb.array[:,tt]
+        if jdate_bug_fix:
+            doy -= 1
+            print('Fixing the jdate bug.')
+        else:
+            print('Not fixing the jdate bug.')
+        jdays = (doy*86400.0*1e6).astype('timedelta64[us]')
+        
+        # jdays = (sb.array[:,tt]*86400.0*1e6).astype('timedelta64[us]')
         basetime = np.datetime64(datetime(sb.yearbase,1,1))
 
         dtime = basetime+jdays
@@ -132,6 +150,17 @@ def parse_seabird_cnv(cnvfile, basetime=None):
 	    #    )
 
 	    #output.update({var:TS})
+        else:
+            print(var + ' no in varlookup.')
+
+    print(ds)
+
+    # Added this check in 2020. Not actually sure it should always hold. 
+    # assert(np.datetime64(sb.datetime) == ds.time.values[0])
+    if not np.datetime64(sb.datetime) == ds.time.values[0]:
+        print('sb.datetime is ' + str(sb.datetime))
+        print('ds.time.values[0] is ' + str(ds.time.values[0]))
+        [print('     Whooooooooaaaaaaa') for i in np.arange(10)]
 
     return ds
 

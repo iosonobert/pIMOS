@@ -44,12 +44,12 @@ def from_asc(filename):
     
     return rr, ds
 
-def from_cnv(filename):
+def from_cnv(filename, jdate_bug_fix=False):
     """
     Spin up from *.asc file
     """
         
-    ds = read_sbd.parse_seabird_cnv(filename)
+    ds = read_sbd.parse_seabird_cnv(filename, jdate_bug_fix=jdate_bug_fix)
 
     ds.attrs['raw_file_name']      = os.path.split(filename)[1]
     ds.attrs['raw_file_directory'] = os.path.split(filename)[0]
