@@ -262,10 +262,10 @@ class NORTEK_VECTOR(xrwrap.xrwrap):
         
         fs = self.get_raw_file_attributes()['config:fs']
 
-        pto = adv_object.PointTurbulenceClass(ds_.time, 
-                                ds_.vel_dolfyn[0, :], 
-                                ds_.vel_dolfyn[1, :], 
-                                ds_.vel_dolfyn[2, :], 
+        pto = adv_object.PointTurbulenceClass(ds_.time.values, 
+                                ds_.vel_dolfyn[0, :].values, 
+                                ds_.vel_dolfyn[1, :].values, 
+                                ds_.vel_dolfyn[2, :].values, 
                                 fs=fs,
                                 set_time=ds_.datetime.values)
         
@@ -289,7 +289,7 @@ class NORTEK_VECTOR(xrwrap.xrwrap):
 
         if phase_unwrap:
             print('Running unwrap')
-            pto.clean_unwrap(block_length_seconds=600)
+            pto.clean_unwrap(block_length_seconds=30)
         if despike:
             print('Running despike')
             pto.clean_despike(block_length_seconds=120)
