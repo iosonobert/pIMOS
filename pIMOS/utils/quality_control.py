@@ -46,6 +46,8 @@ def pimosImpossibleLocationSetQC():
 def pimosInOutWaterQC(rr, mooring, db_data, year_1=1990, year_n=2200, delete_raw=False, experiment='kissme', recovered='kissme_recovery'):
     """
     This differs somewhat from IMOS. It takes a mooring table with mooring in/out dates and QCs accordingly. 
+
+    THIS SHOULD NOT BE THE CASE IT SHOULD BE INDEPENDENT OF THE DATA TABLES. 
     """
     
     df = db_data['possible_mooring_dates']
@@ -62,6 +64,27 @@ def pimosInOutWaterQC(rr, mooring, db_data, year_1=1990, year_n=2200, delete_raw
     start_date = df['StartDate'].values[0]
     end_date = df['EndDate'].values[0]
 
+    # Start
+    rr.update_qc_flag('*', 
+                  'time',
+                  np.datetime64(datetime.datetime(year_1, 1, 1)),
+                  start_date,
+                  1,
+                  'pimosInOutWaterQC start date: {}'.format(start_date), delete_raw=delete_raw)
+
+    #End
+    rr.update_qc_flag('*', 
+                      'time',
+                      end_date,
+                      np.datetime64(datetime.datetime(year_n, 1, 1, 1)),
+                     1,
+                     'pimosInOutWaterQC end date: {}'.format(end_date), delete_raw=delete_raw)
+              
+def _pimosInOutWaterQC(rr, start_date, end_date, year_1=1990, year_n=2200, delete_raw=False, experiment='kissme', recovered='kissme_recovery'):
+    """
+    This differs somewhat from IMOS. It takes a mooring table with mooring in/out dates and QCs accordingly. 
+    """
+    
     # Start
     rr.update_qc_flag('*', 
                   'time',
