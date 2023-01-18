@@ -175,6 +175,7 @@ def parse_seabird_asc(filename):
 
     attributes={}
     output = []
+    leaders = []
     time = []
     for line in f.readlines():
 
@@ -193,6 +194,10 @@ def parse_seabird_asc(filename):
                     attributes.update({key.strip():val.strip()})       
                 except:
                     continue
+            else:
+                leaders.append(headline.strip())
+                if True: # verbose:
+                    print("'{}'".format(headline))
 
         else:
             # We are in the meat of the file
@@ -209,18 +214,44 @@ def parse_seabird_asc(filename):
     # Convert to an xray data set
 
     # Get the variable names for SBE39 only
-    if 'SBE 39 configuration' in attributes:
+    
+    # if 'SBE 39 configuration' in attributes:
+    if leaders[0] in ['Sea-Bird SBE39 Data File:']:
         print('asc file appears to be for an SBE39...')
         if attributes['SBE 39 configuration'] == 'temperature only':
+            print('     ...file has temperature only')
             varnames = ['Temperature']
-        else:
-            
+        elif attributes['SBE 39 configuration'] == 'temperature and pressure':
+            print('     ...file has temperature and pressure')
             print(attributes['SBE 39 configuration'])
             varnames = ['Temperature','Pressure']
-        
-    else:
+        else:
+            print(leaders)
+            print(attributes)
+            raise(Exeption("Cannot verify if pressure is installed. Tighten this reader code. "))
+            
+
+    elif leaders[0] in ['Sea-Bird SBE39plus Data File:']:
+        print('asc file appears to be for an SBE39+...')
+        if 'PressureInstalled: no' in leaders:
+            print('     ...file has temperature only')
+            varnames = ['Temperature']
+        elif 'PressureInstalled: yes' in leaders:
+            print('     ...file has temperature and pressure')
+            varnames = ['Temperature','Pressure']
+        else:
+            print(leaders)
+            print(attributes)
+            raise(Exeption("Cannot verify if pressure is installed. Tighten this reader code. "))
+
+    elif leaders[0] in ['Sea-Bird SBE37 Data File:']:
         print('asc file appears to be for an SBE37...')
-        varnames = ['Temperature', 'Conductivity']
+        print('     ...assuming temperature and conductivity but this is proibably just a UWA thing.')
+        varnames = ['Temperature', 'Conductivity'] # I assume Matt hard coded this because of 4567
+    else:
+        print(leaders)
+        print(attributes)
+        raise(Exception("File not recognised. Tighten this reader code. "))
 
     #varnames = []
     #for aa in attributes:
