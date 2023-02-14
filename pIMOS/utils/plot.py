@@ -9,7 +9,7 @@ import glob
 tind = np.arange(3000, 8000)
 
 def stacked_scalar(ds, fh=6, kd_correct=False, tind=None, xrot=20):
-    plt.figure(figsize=(15, fh))
+    plt.figure(figsize=(15, fh), variable='Temperature')
     
     if tind is None:
         tind = np.arange(len(ds.time.values))
@@ -18,8 +18,8 @@ def stacked_scalar(ds, fh=6, kd_correct=False, tind=None, xrot=20):
     if kd_correct:
         z = ds.z_hat[:, tind]
         
-    plt.pcolor(ds.time[tind], z, ds.Temperature[:, tind], cmap='Spectral_r', shading='auto')
-    plt.colorbar(label='Temperature')
+    plt.pcolor(ds.time[tind], z, ds[variable][:, tind], cmap='Spectral_r', shading='auto')
+    plt.colorbar(label=variable)
     plt.ylabel('z [m]')
     plt.title(ds.attrs['site_station'])
     
