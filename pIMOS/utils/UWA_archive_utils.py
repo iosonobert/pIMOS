@@ -122,7 +122,20 @@ def plot_echo(rr, db_data, mooring, attributes, variable='echo', width=65, cmap=
     return fig
 
 
-def plot_temp(rr, db_data, mooring, attributes, variable='Temperature', plotraw=True, width=65, experiment='rs2019', recovered='rs19_rec'):
+def plot_temp(rr, db_data, mooring, attributes, variable='Temperature',\
+              plotraw=True, width=65, experiment=None, recovered=None):
+    
+    if experiment is None:
+        try:
+            experiment = attributes['project']
+        except:
+            Exception("Please supply an experiment.")
+
+    if recovered is None:
+        try:
+            recovered = attributes['trip']
+        except:
+            Exception("Please supply a recovery trip name.")            
     
     #%matplotlib inline
     fig = plt.figure(figsize=(20,3))
@@ -151,7 +164,7 @@ def plot_temp(rr, db_data, mooring, attributes, variable='Temperature', plotraw=
     
     return fig
 
-def add_mooring_dates(db_data, mooring, ax, experiment='rs2019', recovered='rs19_rec'):
+def add_mooring_dates(db_data, mooring, ax, experiment=None, recovered=None):
     
     yl = ax.get_ylim()
     
@@ -181,6 +194,10 @@ def pIMOS_export(rr, archive_dir, model, file_append=''):
 
     # rr.folder = folder
     # rr.file_ = serial
+
+    # Check if time has units an remove before saving
+    if 'units' in rr.ds['time'].attrs:
+        del rr.ds['time'].attrs['units']
     
     rr.export( naming_method='convention', export_directory=folder)
         
