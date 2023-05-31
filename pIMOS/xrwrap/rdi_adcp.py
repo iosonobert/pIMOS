@@ -123,12 +123,12 @@ def from_pdo(filename, rotate=False, mapbins=False, verbose=False):
                     'units':'degrees'},
                 'dims':('time',)
             },
-        'mpltime':
-            {'data':data.orient.raw.roll,
-                'attrs':{'long_name':'Instrument roll',
-                    'units':'degrees'},
-                'dims':('time',)
-            },
+        # 'mpltime':
+        #     {'data':data.orient.raw.roll,
+        #         'attrs':{'long_name':'Instrument roll',
+        #             'units':'degrees'},
+        #         'dims':('time',)
+        #     },
     }
 
     attrs = data.config
@@ -193,6 +193,56 @@ def from_pdo(filename, rotate=False, mapbins=False, verbose=False):
 
     
     return rr, ds
+
+
+def from_pdo_dolfynxr(filename, rotate=False, mapbins=False, verbose=False):
+    """
+    Read PD0 file with Dolfyn v1.XX. 
+    """
+    
+    # Load the raw binary data
+    ds = rdi.read_rdi(filename) # This would be Levi Kilcher's dat object
+    
+    if verbose:
+        print(ds)
+
+    ds.attrs['raw_file_name']      = os.path.split(filename)[1]
+    ds.attrs['raw_file_directory'] = os.path.split(filename)[0]
+
+    ds=ds.rename({'vel':'beamvel'})
+    ds=ds.rename({'range':'distance'})
+    ds=ds.rename({'prcnt_gd':'percent_good'})
+    ds=ds.rename({'temp':'temperature'})
+    ds=ds.rename({'amp':'echo'})
+
+    ds['beamvel'] = ds.beamvel.swap_dims({'dir': 'beam'})\
+        .transpose('distance', 'time', 'beam')
+    ds['percent_good'] = ds.percent_good.transpose('distance', 'time', 'beam')
+    ds['echo'] = ds.echo.transpose('distance', 'time', 'beam')
+    ds['corr'] = ds.corr.transpose('distance', 'time', 'beam')
+
+    rr = RDI_ADCP_PD02(ds)
+
+    #############################
+    ## Higher Process level stuff
+    #############################
+    rr.associate_qc_flag('beamvel', 'velocity3')
+
+    #############################################
+    # Rotate raw data, mapping if necessary #####
+    #############################################
+    if rotate:
+        rr._calc_rotations(mapbins)
+        ds = rr.ds
+        
+    if False: # I don't know where the Dolfyn gets this info from. And thus, I don't trust this info. 
+        rr.update_attribute('nominal_instrument_orientation', ds.attrs['orientation'])
+
+    # 'DELETED THE ENCODING FROM MATT RAYSONs CODE. QUESTION FOR HIM.'
+    # self.ds, self.encoding = self._to_xray(self._data)
+
+    return rr, ds
+
 
 def from_netcdf(infile):
     """
