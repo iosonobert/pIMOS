@@ -184,22 +184,19 @@ def add_mooring_dates(db_data, mooring, ax, experiment=None, recovered=None):
     
     pass
 
-def pIMOS_export(rr, archive_dir, model, file_append=''):
-    
+def pIMOS_export(rr, archive_dir, file_version, model, file_append=''):
+
     folder = os.path.join(archive_dir, model)
+    folder = os.path.join(archive_dir, 'pimos_v'+__version__)
     if not os.path.exists(folder):
         os.mkdir(folder)
 
-    print(folder)
+    fv = 'FV{:02.0f}'.format(file_version)
+    folder = os.path.join(folder, fv)
+    if not os.path.exists(folder):
+        os.mkdir(folder)
 
-    # rr.folder = folder
-    # rr.file_ = serial
-
-    # Check if time has units an remove before saving
-    if 'units' in rr.ds['time'].attrs:
-        del rr.ds['time'].attrs['units']
-    
-    rr.export( naming_method='convention', export_directory=folder)
+    folder = os.path.join(folder, model)
         
 def row_to_attrs(row):
     """
