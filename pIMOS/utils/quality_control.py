@@ -64,6 +64,9 @@ def pimosInOutWaterQC(rr, mooring, db_data, year_1=1990, year_n=2200, delete_raw
     start_date = df['StartDate'].values[0]
     end_date = df['EndDate'].values[0]
 
+    print(start_date)
+    print(end_date)
+
     # Start
     rr.update_qc_flag('*', 
                   'time',

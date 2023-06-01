@@ -11,7 +11,6 @@ import numpy as np
 import xarray as xr
 import pandas as pd
 import matplotlib
-from windrose import WindroseAxes
 import datetime
 import os 
 import pdb
@@ -20,8 +19,7 @@ import importlib
 
 # import zutils.xrwrap as xrwrap
 import pIMOS.xrwrap.xrwrap as xrwrap
-import zutils.stats as zstats
-import zutils.file as zfile
+import pIMOS.utils.file as zfile
 
 
 def from_log(filename):

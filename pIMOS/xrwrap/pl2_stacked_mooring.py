@@ -19,10 +19,12 @@ import glob
 import importlib 
 from collections import OrderedDict
 
-import zutils.xrwrap as xrwrap
-import zutils.stats as zstats
-import zutils.file as zfile
-import zutils.time as ztime
+# import zutils.xrwrap as xrwrap
+# import zutils.stats as zstats
+# import zutils.file as zfile
+# import zutils.time as ztime
+
+import afloat.time as ztime
 
 # import pIMOS.xrwrap.pimos_pls as pls
 # import pIMOS.xrwrap.seabird_37_39_56 as wrap_sbd
@@ -146,7 +148,7 @@ def from_fv01_archive(files, stack_variables, **kwargs):
         print('Loading file {} of {}'.format(i, len(files)))
 
         ds = xr.open_dataset(file)
-        rr = xrwrap.xrwrap() # Just use the base class here
+        rr = pimoswrap.pimoswrap() # Just use the base class here
         rr.wrap(ds)
 
         for attr in attrs_to_join:

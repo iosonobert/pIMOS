@@ -6,30 +6,217 @@ Created on Mon Jul 30 15:17:42 2018
 """
 #%%
 import xarray as xr
-from turbo_tools.utils import time as turbo_utils_time
 import matplotlib.pyplot as plt
 
 import importlib
 import datetime
-import turbo_tools
 import numpy as np
-from turbo_tools.classes.adcp_object import TurbulenceProfilerClass
 import dolfyn as dlfn
 
 from os import listdir
 import os
 
-from zutils.time import num2date_lk as num2date_lk
+from afloat.time import num2date_lk as num2date_lk
 
 # import zutils.xrwrap as xrwrap
 import pIMOS.xrwrap.xrwrap as xrwrap
-
 from pIMOS.utils.nortek_signature_utils import beam2inst, inst2earth
+
+# import turbo_lance
+# from turbo_lance.utils import time as turbo_utils_time
+# from turbo_lance.classes.adcp_object import TurbulenceProfilerClass
 
 deg2rad = np.pi / 180.
 rad2deg = 180./np.pi
 
 def from_ad2cp(filename, nens=None, dat=None, hasb=0):
+        
+    """
+    Initialise from raw ad2cp file. 
+    """
+
+    fullpath = filename
+
+    if dat is None:
+        if not nens is None: 
+            # Before reading the full fuls, read the first and last ensembles in nens to and print the limits. 
+
+            start, end = nens
+
+            dat_ = dlfn.read(fullpath, nens=[start, start+2], rebuild_index=False)
+            st = dat_.mpltime[0]
+
+            dat_ = dlfn.read(fullpath, nens=[end, end+2], rebuild_index=False)
+            en = dat_.mpltime[0]
+
+            print('Ensemble range spans {} to {}'.format(num2date_lk(st), num2date_lk(en)))
+
+            print('     {} hours in record.'.format((en-st)*24))
+
+        dat = dlfn.read(fullpath, nens=nens, rebuild_index=False)
+    else:
+        pass
+
+
+    st = dat.time[0]
+    en = dat.time[-1]
+    print('File read, {} hours in record.'.format((en-st)*24))
+
+    # Some checks here. Ideally these would all be handled down the line, but this is not the case at present. 
+    if not "time_b5" in dat:
+        raise(Exception("4 beam files not handled."))
+        
+
+    b5_lag = dat.time.values-dat.time_b5.values
+    if any(b5_lag>np.timedelta64(int(1e6/15), 'us')):
+        raise(Exception("Something wrong with b5 lag."))
+
+        
+    if not len(dat.range.values)==len(dat.range_b5.values) or not all(dat.range.values==dat.range_b5.values):
+        raise(Exception("Handling range!= range_b5 is not handled."))
+
+
+    if not dat.attrs['coord_sys']=="beam" or not dat.attrs['coord_sys_axes_b5']=="beam":
+        raise(Exception("BEAM data only handled."))
+
+
+    nc = dat.vel.shape[1]
+    nt = dat.vel.shape[2]
+
+    blank1 = np.nan*np.zeros((nc, nt))
+    blank3 = np.nan*np.zeros((3, nc, nt))
+
+    blank1.shape
+
+    time = dat.time
+
+    vel_dolfyn = np.concatenate((dat.vel.values, dat.vel_b5.values[None, :, :]))
+    echo = np.concatenate((dat.amp.values, dat.amp_b5.values[None, :, :]))
+    corr = np.concatenate((dat.corr.values, dat.corr_b5.values[None, :, :]))
+
+
+
+    ds = xr.Dataset({'vel_dolfyn': (['beam', 'height', 'time'], vel_dolfyn),
+                'vel_enu': (['cartesian_axes', 'height', 'time'], blank3),
+                'vel_xyz': (['cartesian_axes', 'height', 'time'], blank3),
+                'four_beam_error_velocity': (['height', 'time'], blank1),
+                'pressure': ('time', dat.pressure.values),
+                'temperature': ('time', dat.temp.values),
+                'speed_of_sound': ('time', dat.c_sound.values),
+                'heading': (['time'], dat.heading.values),
+                'pitch': (['time'], dat.pitch.values),
+                'roll': (['time'], dat['roll'].values),
+                'echo': (['beam', 'height', 'time'], echo), 
+                'corr': (['beam', 'height', 'time'], corr),
+                'distance': ('height', np.arange(0, nc)),
+                'cell': ('height', np.arange(0, nc))},
+                coords={'beam': np.arange(1, 6), 'cartesian_axes': np.arange(1, 4), 'height': np.arange(0, nc), 'time': time})
+
+    ds.attrs['raw_file_name']      = os.path.split(filename)[1]
+    ds.attrs['raw_file_directory'] = os.path.split(filename)[0]
+
+
+
+    coords = dat.coord_sys                
+    ds.vel_dolfyn.attrs['standard_name'] = '{}_seawater_velocity'.format(coords) 
+    ds.vel_dolfyn.attrs['long_name'] = 'Velocity output by Dolfyn package when reading the .vec file with no key word arguments. Coord sys was {}'.format(coords) 
+    ds.vel_dolfyn.attrs['units'] = 'm/s' 
+
+    ds.vel_xyz.attrs['standard_name'] = 'XYZZ_seawater_velocity'
+    ds.vel_xyz.attrs['long_name'] = 'Instrument coordinate [XYZZ] velocity. Conventions are nortek conventions.'
+    ds.vel_xyz.attrs['units'] = 'm/s' 
+
+    ds.vel_enu.attrs['standard_name'] = 'ENU_seawater_velocity'
+    ds.vel_enu.attrs['long_name'] = 'Earth coordinate [ENU] velocity. '
+    ds.vel_enu.attrs['units'] = 'm/s' 
+
+    ds.pressure.attrs['standard_name'] = 'pressure' 
+    ds.pressure.attrs['long_name'] = 'pressure' 
+    ds.pressure.attrs['units'] = 'dbar' 
+
+    ds.temperature.attrs['standard_name'] = 'seawater_temperature' 
+    ds.temperature.attrs['long_name'] = 'seawater_temperature' 
+    ds.temperature.attrs['units'] = 'deg' 
+
+    ds.speed_of_sound.attrs['standard_name'] = 'speed_of_sound' 
+    ds.speed_of_sound.attrs['long_name'] = 'Speed of sound used by the instrument to estimate range etc.' 
+    ds.speed_of_sound.attrs['units'] = 'm/s' 
+
+    ds.distance.attrs['standard_name'] = 'distance_between_cell_and_instrument' 
+    ds.distance.attrs['long_name'] = 'distance between cell and instrument, positive away from instrument' 
+    ds.distance.attrs['units'] = 'm' 
+
+    ds.height.attrs['standard_name'] = 'height_above_seabed' 
+    ds.height.attrs['long_name'] = 'Height above seabed, positive upwards' 
+    ds.height.attrs['units'] = 'm' 
+
+    # Specify variables which will not be CF compliant. 
+    ds['heading'].attrs['cf_compliant'] = 0
+    ds['pitch'].attrs['cf_compliant'] = 0
+    ds['roll'].attrs['cf_compliant'] = 0
+    ds['echo'].attrs['cf_compliant'] = 0
+    ds['corr'].attrs['cf_compliant'] = 0
+    ds.time.attrs['cf_compliant'] = 0
+    ds.beam.attrs['cf_compliant'] = 0
+
+
+
+    attrs = {}
+    attrs['config:SerialNum'] = dat.attrs['SerialNum']
+    attrs['config:fs'] = dat.attrs['fs']
+    attrs['config:blanking'] = dat.attrs['blank_dist'] 
+    attrs['config:blanking_b5'] = dat.attrs['blank_dist_b5']
+    attrs['config:cell_size'] = dat.attrs['cell_size']
+    attrs['config:cell_size_b5'] = dat.attrs['cell_size_b5'] 
+    attrs['config:coord_sys'] = dat.attrs['coord_sys'] 
+    attrs['config:coord_sys_b5'] = dat.attrs['coord_sys_axes_b5'] 
+    # attrs['config:data_desc'] = dat.config.data_desc
+    # attrs['config:data_desc_b5'] = dat.config.data_desc_b5
+    # attrs['config:model'] = dat.config.model
+    attrs['config:nbeams'] = dat.attrs['n_beams'] 
+    attrs['config:nbeams_b5'] = dat.attrs['n_beams_b5'] 
+    attrs['config:ncells'] = dat.attrs['n_cells'] 
+    attrs['config:ncells_b5'] = dat.attrs['n_cells_b5'] 
+    attrs['config:nom_corr'] = dat.attrs['nominal_corr'] 
+    attrs['config:nom_corr_b5'] = dat.attrs['nominal_corr_b5'] 
+    attrs['config:power_level'] = dat.attrs['power_level_dB']
+    attrs['config:power_level_b5'] = dat.attrs['power_level_dB_b5']
+    attrs['config:ambig_vel'] = dat.attrs['ambig_vel']
+    attrs['config:ambig_vel_b5'] = dat.attrs['ambig_vel_b5']
+
+    # Dolfyn v1 does this much better - it puts it all into a data variable
+    T = dat.beam2inst_orientmat.values
+    attrs['config:TransMatrix'] = np.array2string(T)
+
+    attrs['config:head:TransMatrix_howToTeadInNumpy'] = "T=T.replace('[','');T=T.replace(']','');T=np.fromstring(T, dtype=float, sep=' ').reshape((4, 4))"
+
+    ds['distance'] = ds.cell*attrs['config:cell_size']+attrs['config:blanking']
+    ds['height'] = ds.cell*attrs['config:cell_size']+attrs['config:blanking'] + hasb # This assumes upward looking. 
+
+    ds['echo'] = ds.echo.astype(float)
+    ds.attrs = attrs
+
+
+    rr = NORTEK_SIGNATURE(ds)
+
+    #############################
+    ## Higher Process level stuff
+    #############################
+
+    # Associate some QC flags
+    rr.associate_qc_flag('vel_dolfyn', 'velocity')
+    rr.associate_qc_flag('vel_enu', 'velocity3')
+    rr.associate_qc_flag('vel_xyz', 'velocity3')
+    rr.associate_qc_flag('temperature', 'temperature')
+    rr.associate_qc_flag('pressure', 'pressure')
+    rr.associate_qc_flag('heading', 'compass')
+    rr.associate_qc_flag('pitch', 'tilt')
+    rr.associate_qc_flag('roll', 'tilt')
+
+    return rr, rr.ds, dat
+
+
+def from_ad2cp_dv10(filename, nens=None, dat=None, hasb=0):
     """
     Initialise from raw ad2cp file. 
     """
@@ -316,7 +503,7 @@ class NORTEK_SIGNATURE(xrwrap.xrwrap):
   
     def to_pto(self, **kwargs):
         """
-        Return a turbo_tools turbulence PROFILER object for turbulence calcs etc. 
+        Return a turbo_lance turbulence PROFILER object for turbulence calcs etc. 
 
         NOTE: requires ENU velocities. This is different to how the vector is handled.  
 
@@ -327,7 +514,7 @@ class NORTEK_SIGNATURE(xrwrap.xrwrap):
              calc_mean:    [bool] whether or not to calculate mean quantities
         """    
 
-        adcp_object = importlib.import_module('turbo_tools.classes.adcp_object') 
+        adcp_object = importlib.import_module('turbo_lance.classes.adcp_object') 
 
         ds_ = self.ds
 

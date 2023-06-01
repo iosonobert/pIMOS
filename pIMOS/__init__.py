@@ -1,39 +1,64 @@
 import xarray as _xr, warnings
+import imp
 
 import pIMOS.xrwrap.seabird_37_39_56 as seabird_37_39_56
 import pIMOS.xrwrap.wetlabs_ntu as wetlabs_ntu
-import pIMOS.xrwrap.nortek_signature as nortek_signature
-import pIMOS.xrwrap.nortek_vector as nortek_vector
+
+try:
+    import pIMOS.xrwrap.nortek_signature as nortek_signature
+    import pIMOS.xrwrap.nortek_vector as nortek_vector
+    import pIMOS.xrwrap.rdi_adcp as rdi_adcp
+    has_dolfyn = True
+except AttributeError:
+    print('Need to update dolfyn to version 1')
+    has_dolfyn = False
+
+import pIMOS.xrwrap.solander_ctd as solander_ctd
 import pIMOS.xrwrap.lisst as lisst
-import pIMOS.xrwrap.rdi_adcp as rdi_adcp
-import pIMOS.xrwrap.rsi_vmp as rsi_vmp
+
+try:
+    imp.find_module('pyODAS')
+    import pIMOS.xrwrap.rsi_vmp as rsi_vmp
+    has_rsi_vmp = True
+except ImportError:
+    print('pyODAS not found, not importing pIMOS.xrwrap.rsi_vmp')
+    has_rsi_vmp = False
+
 import pIMOS.xrwrap.solander_ctd as solander_ctd
 
 import pIMOS.utils.quality_control
 import pIMOS.utils.plot
 import pIMOS.utils.modify
 
+from ._version import __version__
 
 # import pIMOS.xrwrap.pimoswrap as pimoswrap 
 
 classes = [
         seabird_37_39_56.SEABIRD_37_39_56,
-        rsi_vmp.RSI_VMP,
         solander_ctd.SOLANDER_CTD,
-        rdi_adcp.RDI_ADCP_PD02,
         wetlabs_ntu.WETLABS_NTU,
         lisst.LISST,
-        nortek_vector.NORTEK_VECTOR,
-        nortek_signature.NORTEK_SIGNATURE
     ]
 
 del seabird_37_39_56
 del wetlabs_ntu
-del nortek_signature
-del nortek_vector
+
+
 del lisst
-del rdi_adcp
-del rsi_vmp
+
+if has_dolfyn:
+    classes.append(nortek_vector.NORTEK_VECTOR)
+    classes.append(nortek_signature.NORTEK_SIGNATURE)
+    classes.append(rdi_adcp.RDI_ADCP_PD02)
+    del nortek_signature
+    del nortek_vector
+    del rdi_adcp
+
+if has_rsi_vmp:
+    classes.append(rsi_vmp.RSI_VMP)
+    del rsi_vmp
+
 del solander_ctd
 
 def load_pimos_nc(filename):

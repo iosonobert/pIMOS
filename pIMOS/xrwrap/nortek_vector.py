@@ -18,25 +18,29 @@ import pdb
 import importlib 
 
 # import zutils.xrwrap as xrwrap
+# import zutils.file as zfile
+# import zutils.stats as zstats
 import pIMOS.xrwrap.xrwrap as xrwrap
-
-import zutils.stats as zstats
-import zutils.file as zfile
+import pIMOS.utils.file as zfile
 
 font = {'weight' : 'normal',
         'size'   : 15}
 matplotlib.rc('font', **font)
 
-def from_vec(filename, nens=None, driver='dolfyn', debug=False):
+def from_vec_v0(filename, nens=None, driver='dolfyn', debug=False):
     """
-    Read vector with either Dolfyn of Dall's porpoise. 
+    Read vector with either Dolfyn v0 or Dall's porpoise. 
     """
     
     if type(filename) == list:
         raise(Exception("Reading muyltiple files no longer supported"))
             
-        
+    
+    # This was used prior to 2023
     ds, dat = read_vec_dd_single(filename, driver=driver, nens=nens, debug=debug)
+
+    # This was put in in 2023
+    # ds, dat = read_vec_dd_single_DV1(filename, nens=nens, debug=debug)
 
     # New version of dolfyn outputs timezone aware pandas timestamp objects 
     # this breaks everything so we must convert to np.datetime64
@@ -175,6 +179,98 @@ def from_vec(filename, nens=None, driver='dolfyn', debug=False):
 
     return rr, ds
 
+def from_vec_v1(filename, nens=None, debug=False):
+    """
+    Read vector with Dolfyn v1. 
+    """
+    
+    if type(filename) == list:
+        raise(Exception("Reading muyltiple files no longer supported"))
+            
+    # This was put in in 2023
+    ds, dsd = read_vec_dd_single_DV1(filename, nens=nens, debug=debug)
+
+    coords = dsd.attrs['coord_sys']
+    ds.vel_dolfyn.attrs['standard_name'] = '{}_seawater_velocity'.format(coords) 
+    ds.vel_dolfyn.attrs['long_name'] = 'Velocity output by Dolfyn package when reading the .vec file with no key word arguments. Coord sys was {}'.format(coords) 
+    ds.vel_dolfyn.attrs['units'] = 'm/s' 
+
+    ds.pressure.attrs['standard_name'] = 'pressure' 
+    ds.pressure.attrs['long_name'] = 'pressure' 
+    ds.pressure.attrs['units'] = 'dbar' 
+
+    ds.temperature.attrs['standard_name'] = 'seawater_temperature' 
+    ds.temperature.attrs['long_name'] = 'seawater_temperature' 
+    ds.temperature.attrs['units'] = 'deg' 
+    
+    ds.speed_of_sound.attrs['standard_name'] = 'speed_of_sound' 
+    ds.speed_of_sound.attrs['long_name'] = 'Speed of sound used by the instrument to estimate range etc.' 
+    ds.speed_of_sound.attrs['units'] = 'm/s' 
+
+    # Specify variables which will not be CF compliant. 
+    ds['heading'].attrs['cf_compliant'] = 0
+    ds['pitch'].attrs['cf_compliant'] = 0
+    ds['roll'].attrs['cf_compliant'] = 0
+    ds['echo'].attrs['cf_compliant'] = 0
+    ds['corr'].attrs['cf_compliant'] = 0
+    ds.time.attrs['cf_compliant'] = 0
+    ds.beam.attrs['cf_compliant'] = 0
+
+    attrs = {}
+    attrs['config:fs'] = dsd.attrs['fs']
+    
+
+    ds.attrs = attrs
+    
+    rr = NORTEK_VECTOR(ds)
+    
+    ds.attrs['raw_file_name']      = os.path.split(filename)[1]
+    ds.attrs['raw_file_directory'] = os.path.split(filename)[0]
+
+    rr.dsd = dsd
+
+    # Associate some QC flags
+    rr.associate_qc_flag('vel_dolfyn', 'velocity')
+    rr.associate_qc_flag('temperature', 'temperature')
+    rr.associate_qc_flag('pressure', 'pressure')
+    rr.associate_qc_flag('heading', 'compass')
+    rr.associate_qc_flag('pitch', 'tilt')
+    rr.associate_qc_flag('roll', 'tilt')
+
+    return rr, ds
+
+
+def read_vec_dd_single_DV1(filename, nens=None, debug=True):
+
+    # Read with Dolfyn version 1.X.X 
+    
+    if not nens is None:
+        print('Reading {} ensembles'.format(nens))
+    else:
+        print('Reading whole file')
+
+    dolfyn = importlib.import_module('dolfyn')
+
+    if not dolfyn.__version__[0:2] == '1.':
+        raise(Exception('Valid for dolfyn version 1 only.'))
+
+    # Get away from this multiple file reading
+    # dat = self.driver.read(self.fullpath(i), nens=nens)
+    dsd = dolfyn.read(filename, nens=nens, debug=debug)
+
+    ds = xr.Dataset({'vel_dolfyn': (['beam', 'time'], dsd.vel.values), 
+                        'pressure': ('time', dsd.pressure.values),
+                        'temperature': ('time', dsd.temp.values),
+                        'speed_of_sound': ('time', dsd.c_sound.values),
+                        'heading': (['time'], dsd.heading.values), 
+                        'pitch': (['time'], dsd.pitch.values), 
+                        'roll': (['time'], dsd['roll'].values), 
+                        'echo': (['beam', 'time'], dsd.amp.values), 
+                        'corr': (['beam', 'time'], dsd.corr.values)},
+                        coords={'beam': np.arange(1, 4), 'time': dsd.time.values})
+    
+    return ds, dsd
+
 def read_vec_dd_single(filename, driver, nens=None, debug=True):
 
     # Read with either dolfyn or dallsporpoise 
@@ -235,9 +331,9 @@ class NORTEK_VECTOR(xrwrap.xrwrap):
 
     def to_pto(self, pitch=None, roll=None, heading=None, ori='up', date_lims=[None, None], **kwargs):
         """
-        Return a turbo_tools point turbulence object for turbulence calcs etc. 
+        Return a turbo_lance point turbulence object for turbulence calcs etc. 
 
-        NOTE: turbo_tools point turbulence objects currently only support fixed instruments
+        NOTE: turbo_lance point turbulence objects currently only support fixed instruments
 
         Inputs:
             pitch: [float]. Constant pitch to use for the rotations. Default is None, in which case the record average will be used.   
@@ -251,7 +347,7 @@ class NORTEK_VECTOR(xrwrap.xrwrap):
              calc_mean:    [bool] whether or not to calculate mean quantities
         """    
 
-        adv_object = importlib.import_module('turbo_tools.classes.adv_object') 
+        adv_object = importlib.import_module('turbo_lance.classes.adv_object') 
         
         ds_ = self.ds
         time = self.ds.datetime.values
@@ -304,17 +400,17 @@ class NORTEK_VECTOR(xrwrap.xrwrap):
 
     def clean(self):
         """
-        For this, initialise a turbo_tools point turbulence class, do the necessary calcs, and return the outpiuts to self.ds. 
+        For this, initialise a turbo_lance point turbulence class, do the necessary calcs, and return the outpiuts to self.ds. 
         """
 
-        raise(Exception('Import from turbo_tools/notebooks required'))
+        raise(Exception('Import from turbo_lance/notebooks required'))
         
     def turbulence_calcs(self):
         """
-        For this, initialise a turbo_tools point turbulence class, do the necessary calcs, and return the outputs to self.ds. 
+        For this, initialise a turbo_lance point turbulence class, do the necessary calcs, and return the outputs to self.ds. 
         """
 
-        raise(Exception('Import from turbo_tools/notebooks required'))
+        raise(Exception('Import from turbo_lance/notebooks required'))
 
     @property
     def ds_diag(self):

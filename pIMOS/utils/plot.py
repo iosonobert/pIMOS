@@ -8,8 +8,9 @@ import glob
 
 tind = np.arange(3000, 8000)
 
-def stacked_scalar(ds, fh=6, kd_correct=False, tind=None, xrot=20):
-    plt.figure(figsize=(15, fh), variable='Temperature')
+def stacked_scalar(ds, fh=6, kd_correct=False, tind=None, xrot=20, variable='Temperature'):
+    
+    plt.figure(figsize=(15, fh))
     
     if tind is None:
         tind = np.arange(len(ds.time.values))

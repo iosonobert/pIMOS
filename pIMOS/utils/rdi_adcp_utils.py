@@ -271,9 +271,9 @@ def sidelobe_trim_calc(self, trim=1.5, P='depth', trim_units='native'):
     # Make the blanking variables
     if not 'sidelobe_last_good' in self.ds.data_vars.keys():
         self.ds['sidelobe_last_good'] = xr.DataArray(
-            data=np.zeros_like(self.ds.mpltime),
-            dims=self.ds.mpltime.dims,
-            coords=self.ds.mpltime.coords,
+            data=np.zeros_like(self.ds.time),
+            dims=self.ds.time.dims,
+            coords=self.ds.time.coords,
             attrs=dict())
         
     if not 'sidelobe_blank' in self.ds.data_vars.keys():

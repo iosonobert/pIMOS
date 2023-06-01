@@ -16,8 +16,8 @@ import datetime
 import os 
 import pdb 
 
-from zutils import qc_conventions
-from zutils import file as zfile
+from pIMOS.utils import qc_conventions
+from pIMOS.utils import file as zfile
 
 default_attrs = {
     'title': '', 
@@ -555,22 +555,49 @@ class xrwrap():
             if not np.all(index_check):
                 continue
 
-            logind = np.ones_like(self.ds[flag_name].values.astype(bool))
-            for index_name in index_dict.keys():
+            # logind = np.ones_like(self.ds[flag_name].values.astype(bool))
+            # for index_name in index_dict.keys():
 
-                index = expand_dims(self.ds[index_name], flag_dims)
+            #     index = expand_dims(self.ds[index_name], flag_dims)
 
-                start, end = index_dict[index_name]
+            #     start, end = index_dict[index_name]
 
-                logind1 = index >= start
-                logind = np.logical_and(logind, logind1)
+            #     logind1 = index >= start
+            #     logind = np.logical_and(logind, logind1)
 
-                logind2 = index <= end
-                logind = np.logical_and(logind, logind2)
+            #     logind2 = index <= end
+            #     logind = np.logical_and(logind, logind2)
 
-            # Note that the logical index is reversed here.
-            self.ds[flag_name] = self.ds[flag_name].where(~logind, flag_value)
+            # # Note that the logical index is reversed here.
+            # self.ds[flag_name] = self.ds[flag_name].where(~logind, flag_value)
                 
+            my_count = self.ds[flag_name].copy()
+            my_count.values[:] = 0
+            conditions = 0
+            for index_name, index_vals in index_dict.items():
+                
+                start, end = index_vals
+                
+                mask_0D = (
+                    (self.ds.coords[index_name] >= start) &
+                    (self.ds.coords[index_name] <= end) 
+                )
+
+                print('SUM OF MASK = {}'.format(np.sum(mask_0D.values)))
+                
+                my_count[mask_0D] += 1 # Doesn't work for 2D
+                # my_count.sel({index_name: mask_0D}) # Doesn't work at all. Ask Professor xarray about this one.  
+
+                conditions += 1
+                                
+            logind = my_count.values == conditions
+            logind = ~logind
+            
+            print('SUM OF logind = {}'.format(np.sum(logind)))
+            print('SUM OF ~logind = {}'.format(np.sum(~logind)))
+
+            self.ds[flag_name] = self.ds[flag_name].where(logind, flag_value)
+            
             ind = np.where(logind)[0]
             logind = self.ds[flag_name] > 0
 
@@ -1051,27 +1078,27 @@ def split_by_timegap(X, timename='time', hours=1):
     
     return Xs
 
-def expand_dims(array, full_dims):
-    """
-    Expands out an array to help with broadcasting.
+# def expand_dims(array, full_dims):
+#     """
+#     Expands out an array to help with broadcasting.
 
-    Inputs: 
-        - array: Array you wish to expand
-        - full_dims: List containing names of dimensions of the array you wish to expand out to
+#     Inputs: 
+#         - array: Array you wish to expand
+#         - full_dims: List containing names of dimensions of the array you wish to expand out to
 
-    Returns:
-        - vals: values of the array expanded into the dimensions within full_dims
+#     Returns:
+#         - vals: values of the array expanded into the dimensions within full_dims
 
-    """
+#     """
     
-    expand_list = []
-    for flag_dim in full_dims:
-        if flag_dim in array.coords:
-            expand_list.append(np.arange(0, len(array[flag_dim])))
-        else:
-            expand_list.append(None)
+#     expand_list = []
+#     for flag_dim in full_dims:
+#         if flag_dim in array.coords:
+#             expand_list.append(np.arange(0, len(array[flag_dim])))
+#         else:
+#             expand_list.append(None)
 
-    vals = array.values[expand_list]
+#     vals = array.values[expand_list]
 
     return vals
 

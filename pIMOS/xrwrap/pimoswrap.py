@@ -19,9 +19,9 @@ import importlib
 
 # import zutils.xrwrap as xrwrap
 # import zutils.xrwrap as xrwrap
-import pIMOS.xrwrap.xrwrap as xrwrap
-import zutils.stats as zstats
-import zutils.file as zfile
+import afloat.utils.xrwrap as xrwrap
+# import zutils.stats as zstats
+# import zutils.file as zfile
 
 font = {'weight' : 'normal',
         'size'   : 15}

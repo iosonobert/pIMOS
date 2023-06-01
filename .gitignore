@@ -1,3 +1,12 @@
 KISSME samples/
 PILBARA samples/
 Other samples/
+pIMOS/__pycache__/*
+pIMOS/xrwrap/__pycache__/*
+pIMOS/utils/__pycache__/*
+pIMOS/read/__pycache__/*
+notebooks/.ipynb_checkpoints/
+dist/*
+pIMOS/utils/UWA_archive_utils_az.py
+pIMOS/xrwrap/rdi_adcp_az.py
+pIMOS.egg-info/*
