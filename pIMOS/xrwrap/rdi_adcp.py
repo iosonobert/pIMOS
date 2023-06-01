@@ -23,7 +23,8 @@ from matplotlib.dates import num2date, date2num
 # import zutils.xrwrap as xrwrap
 import pIMOS.xrwrap.xrwrap as xrwrap
 
-import zutils.time as ztime
+# import zutils.time as ztime
+import afloat.time as ztime
 
 from ..utils import rdi_adcp_utils as rdi_adcp_utils
 

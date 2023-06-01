@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import os
 import pandas as pd
 import numpy as np
-import zutils.plotting as zplot
+import afloat.plot.plotting as zplot
 import warnings
 
 """
