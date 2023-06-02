@@ -1135,10 +1135,10 @@ def naming_conv(attrs, convention=None):
         if type(attrs[attribute]) == str:
             # Check if it has been ; delimited, in which case return a special output
             split_attr = val.split(';')
-            split_attr = set(split_attr) # Just the unique ones
+            split_attr = list(set(split_attr)) # Just the unique ones
             n = len(split_attr)
             if n == 1:
-                pass
+                val = split_attr[0]
             else:
                 val = 'multi({})_'.format(n)+attribute
 
