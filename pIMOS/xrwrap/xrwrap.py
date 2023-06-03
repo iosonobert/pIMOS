@@ -585,7 +585,17 @@ class xrwrap():
 
                 print('SUM OF MASK = {}'.format(np.sum(mask_0D.values)))
                 
-                my_count[mask_0D] += 1 # Doesn't work for 2D
+                if False:
+                    my_count[mask_0D] += 1 # Doesn't work for 2D
+                else:
+                    dims = self.ds[flag_name].dims    # Get a list of dims
+                    hard = [np.s_[:] for dim in dims] # Make a list with full slice as default
+                    mydim = [i for i in np.arange(len(dims)) if dims[i] == index_name][0] # Find our index axis
+                    hard[mydim] = mask_0D.values # Set this axis to the mask
+                    hard = tuple(hard) # Convert to tuple because it just works
+                    
+                    my_count[hard] += 1 # Incriment
+                    
                 # my_count.sel({index_name: mask_0D}) # Doesn't work at all. Ask Professor xarray about this one.  
 
                 conditions += 1
