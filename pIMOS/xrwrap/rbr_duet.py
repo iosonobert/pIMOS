@@ -30,11 +30,10 @@ font = {'weight' : 'normal',
 matplotlib.rc('font', **font)
 
 
-def from_rsk(filename):
+def from_rsk_duet(filename):
     """
-    Spin up from *.rsk file
+    Spin up RBR duet from *.rsk file
     """
-        
     
     # Instantiate an RSK class object, passing the path to an RSK file
     rsk = RSK(filename)
@@ -73,6 +72,65 @@ def from_rsk(filename):
 
     return rr, ds
 
+def from_rsk_quartz(filename, t1=None, t2=None):
+    """
+    Spin up RBR duet from *.rsk file
+    """
+    
+    # Instantiate an RSK class object, passing the path to an RSK file
+    rsk = RSK(filename)
+    print('Opening file....')
+    rsk.open()
+    # Read, process, view, or export data here
+    print('Reading file....')
+    
+    rsk.readdata(t1, t2)
+
+    longNames = [c.longName for c in rsk.channels]
+    longNames
+
+    print('Done reading.')
+    
+    print('Calculating bottom pressure')
+
+    rsk.deriveBPR()
+    longNames = [c.longName for c in rsk.channels]
+    longNames
+
+    print('Done.')
+
+    ti = [i for i, l in enumerate(longNames) if l == 'temperature'][0] + 1
+    pi = [i for i, l in enumerate(longNames) if l == 'bpr_pressure'][0] + 1
+    pti = [i for i, l in enumerate(longNames) if l == 'bpr_temperature'][0] + 1
+    # pi = [i for i in [0, 1] if longNames[i] == 'bpr_pressure'][0]
+    # pti = [i for i in [0, 1] if longNames[i] == 'bpr_temperature'][0]
+
+    print('Really slow loops here to get data - switch to better SQL commands at some point.....')
+    time = [d[0] for d in rsk.data]
+    temperature = [d[ti] for d in rsk.data]
+    bpr_pressure = [d[pi] for d in rsk.data]
+    bpr_temperature = [d[pti] for d in rsk.data]
+    print('.....done')
+
+    # Close the RSK file
+    rsk.close()
+
+    ds = xr.Dataset({       'BPR_Pressure': ('time', bpr_pressure),
+                            'Temperature': ('time', temperature),
+                            'BPR_Temperature': ('time', bpr_temperature)},
+                            coords={'time': time})
+
+    for name in list(ds.data_vars):
+        i = [i for i, l in enumerate(longNames) if l == name.lower()][0]
+        ds[name].attrs['units'] = rsk.channels[i].units
+        
+    rr = RBR_DUET(ds)
+    
+    # This is toward process level 1 stuff
+    rr.add_variable_attributes()
+
+    return rr, ds
+
 def from_netcdf(infile):
     """
     Pass straight to the main xrwrap from_netcdf method.
@@ -90,8 +148,8 @@ def from_netcdf(infile):
 class RBR_DUET(xrwrap.xrwrap):
 
     class_attrs = {
-            'title': 'Measured data from an RBR Duet Data Logger',
-            'source': 'RBR Duet Data Logger' # Could be more specific.
+            'title': 'Measured data from an RBR Data Logger',
+            'source': 'RBR Data Logger' # Could be more specific.
         }
 
     def __init__(self, ds):
@@ -102,6 +160,12 @@ class RBR_DUET(xrwrap.xrwrap):
         self.store_raw_file_attributes(ds)
 
         self.enforce_these_attrs(self.class_attrs)
+
+    def specify_logger(self):
+        """
+        This just formats the attrs for the specific logger.
+        """
+
 
 
     def add_variable_attributes(self):
@@ -116,11 +180,23 @@ class RBR_DUET(xrwrap.xrwrap):
             ds['Temperature'].attrs['units'] = 'deg'
             self.associate_qc_flag('Temperature', 'Temperature')
 
+        if 'BPR_Temperature' in ds.data_vars:
+            ds['BPR_Temperature'].attrs['long_name'] = 'seawater_temperature'
+            ds['BPR_Temperature'].attrs['standard_name'] = 'seawater_temperature'
+            ds['BPR_Temperature'].attrs['units'] = 'deg'
+            self.associate_qc_flag('BPR_Temperature', 'Temperature')
+
         if 'Pressure' in ds.data_vars:
             ds['Pressure'].attrs['standard_name'] = 'sea_water_pressure'
             ds['Pressure'].attrs['long_name'] = '"Sea water pressure" is the pressure that exists in the medium of sea water. It includes the pressure due to overlying sea water, sea ice, air and any other medium that may be present. For sea water pressure excluding the pressure due to overlying media other than sea water, the standard name sea_water_pressure_due_to_sea_water should be used.'
             ds['Pressure'].attrs['units'] = 'dbar'
             self.associate_qc_flag('Pressure', 'Pressure')
+
+        if 'BPR_Pressure' in ds.data_vars:
+            ds['BPR_Pressure'].attrs['standard_name'] = 'sea_water_pressure'
+            ds['BPR_Pressure'].attrs['long_name'] = '"Sea water pressure" is the pressure that exists in the medium of sea water. It includes the pressure due to overlying sea water, sea ice, air and any other medium that may be present. For sea water pressure excluding the pressure due to overlying media other than sea water, the standard name sea_water_pressure_due_to_sea_water should be used.'
+            ds['BPR_Pressure'].attrs['units'] = 'dbar'
+            self.associate_qc_flag('BPR_Pressure', 'Pressure')
 
         if 'Conductivity' in ds.data_vars:
             ds['Conductivity'].attrs['long_name'] = 'sea_water_electrical_conductivity'

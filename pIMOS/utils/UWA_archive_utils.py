@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 import afloat.plot.plotting as zplot
 import warnings
+from pIMOS import __version__
 
 """
 Various tools that should be pIMOS tools, but that I have not officially found a spot for yet. 
@@ -191,13 +192,23 @@ def pIMOS_export(rr, archive_dir, file_version, model, file_append=''):
     if not os.path.exists(folder):
         os.mkdir(folder)
 
+    # fv = 'FV{:02.0f}'.format(file_version)
     fv = 'FV{:02.0f}'.format(file_version)
     folder = os.path.join(folder, fv)
     if not os.path.exists(folder):
         os.mkdir(folder)
 
     folder = os.path.join(folder, model)
+    if not os.path.exists(folder):
+        os.mkdir(folder)
         
+    print(folder)
+
+    # rr.folder = folder
+    # rr.file_ = serial
+    
+    rr.export( naming_method='convention', export_directory=folder)
+
 def row_to_attrs(row):
     """
     Alias for autonomous_row_to_attrs
