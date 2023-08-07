@@ -86,7 +86,7 @@ def from_fv01_archive(files, stack_variables, **kwargs):
     """
     FUNCTION TO
     NOTES: 
-        - Interpolation is by neqarest neighbour. A large reduction in timestep won't result in any kind of filter.
+        - Interpolation is by nearest neighbour. A large reduction in timestep won't result in any kind of filter.
         - The first and last values of any record are set to np.nan to prevent extrap
         - Doesn't currently do any validation that the input files are in fact from the same mooring 
     
@@ -293,8 +293,12 @@ def from_fv01_archive(files, stack_variables, **kwargs):
         # split_attr = joined_attrs[attr].split(';')              # Split back to list
         split_attr = joined_attrs[attr]          
         if not np.all(np.array(split_attr) == split_attr[0]):
-            print(split_attr)
-            raise(Exception('All files must have the same {}'.format(attr)))
+            if isinstance(split_attr[0], float) &\
+                (np.all(np.around(split_attr,5) == np.around(split_attr[0],5))):
+                print('{} is a little off, but close enough'.format(attr))
+            # else:
+            #     print(split_attr)
+            #     raise(Exception('All files must have the same {}'.format(attr)))
         rr.ds.attrs[attr] = split_attr[0]                       # Assign just the first value
         joined_attrs.pop(attr)                                  # Remove from dict
 

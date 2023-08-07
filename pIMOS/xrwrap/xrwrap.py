@@ -61,8 +61,8 @@ def parse_infile(infile, verbose=True):
     """
 
     if type(infile)==str:
-        if verbose:
-            print('Infile is a string')
+        # if verbose:
+        #     print('Infile is a string')
         folder, file = os.path.split(infile)
     elif type(infile) in [list, tuple]:
         if not len(infile) == 2:
@@ -246,9 +246,11 @@ class xrwrap():
 
         nc_file = '{folder}//{file}'.format(folder=outdir, file=outname)
 
-        print('Exporting {}'.format(nc_file))
+        if self.verbose:
+            print('Exporting {}'.format(nc_file))
         
         self.ds.to_netcdf(path=nc_file)
+        print('Exported sucessfully.')
 
         return self.ds # It may be useful in many cases to return somethng here. Just return self.sd for consistency with subclasses.  
 
@@ -288,7 +290,8 @@ class xrwrap():
                 naming_method = 'raw_file'
 
         if naming_method.lower() == 'convention':
-            print('Generating filename from naming convention.')
+            if self.verbose:
+                print('Generating filename from naming convention.')
             outname = self.generate_outname()
             outname = zfile.drop_extension(outname) + '.nc'
             outdir  = self.best_export_dir
@@ -296,19 +299,22 @@ class xrwrap():
         elif naming_method.lower() == 'last_load':
             outdir  = self.attrs['last_load_directory']
             outname = self.attrs['last_load_file_name']
-            print('Will save file using last load file name and directory.')
+            if self.verbose:
+                print('Will save file using last load file name and directory.')
 
         elif naming_method.lower() == 'raw_file':
             outdir  = self.attrs['raw_file_directory']
             outname = self.attrs['raw_file_name']
             # Replace extension
             outname = zfile.drop_extension(outname) + '.nc'
-            print('Will save file using raw file name and directory.')
+            if self.verbose:
+                print('Will save file using raw file name and directory.')
 
         ## Use new directory if specified
-        if not export_directory is None:
+        if export_directory is not None:
             outdir = export_directory
-            print('Will to user input directory.')
+            if self.verbose:
+                print('Using input directory.')
 
         return outdir, outname
 
@@ -839,7 +845,13 @@ class xrwrap():
 
         if (attribute_name in self._default_attrs) or (not strict):
             if self.verbose:
-                print('Setting attribute "{}" to "{}"'.format(attribute_name, attribute_value))
+                if isinstance(attribute_value, str):
+                    if len(attribute_value) < 1000:
+                        print('Setting attribute "{}" to "{}"'.format(attribute_name, attribute_value))
+                    else:
+                        print('Setting attribute "{}" to "{}"'.format(attribute_name, '***long string***'))
+                else:
+                    print('Setting attribute "{}" to "{}"'.format(attribute_name, attribute_value))
             obj.attrs[attribute_name] = attribute_value
         else:
             raise(Exception('{} is not a valid attribute.'.format(attribute_name)))
@@ -916,7 +928,8 @@ class xrwrap():
         push any remaining into the 'raw_file_attributes' attribute.
         """
         
-        print('STORING RAW FILE ATTRIBUTES')
+        if self.verbose:
+            print('STORING RAW FILE ATTRIBUTES')
         input_attributes = ds.attrs.copy()
         keys = input_attributes.keys()
 
@@ -930,7 +943,8 @@ class xrwrap():
             else:
                 invalid_attribute = input_attributes[attribute]
                 invalid_attributes[attribute] = invalid_attribute
-                print(attribute.upper())
+                # if self.verbose:
+                #     print(attribute.upper())
         pass
 
         if not len(invalid_attributes) == 0:
@@ -940,6 +954,8 @@ class xrwrap():
 
             # self.add_string('raw_file_attributes', self.default_user, str(invalid_attributes), ds_name='ds', data_var=None)
             self.attrs['raw_file_attributes'] = str(invalid_attributes)
+            if self.verbose:
+                print('Invalid attributes moved to raw file attrs: ' + str(list(invalid_attributes.keys())))
 
     def enforce_these_attrs(self, enforced_attributes):
         """
@@ -951,8 +967,8 @@ class xrwrap():
         """
 
         # CF Compliance
-        if self.verbose:
-            print(self.attrs)
+        # if self.verbose:
+        #     print(self.attrs)
 
         for attr in enforced_attributes.keys():
             if self.attrs[attr] == '':
