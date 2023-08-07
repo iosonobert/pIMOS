@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 RPSdefault = {
    'SeaWaterTemp':'temperature',\
    'SeaWaterTemp1':'temperature',\
-   'Salinity':'Salinity',\
+   'Salinity':'salinity',\
    'Pressure':'pressure',\
    'WaterDepth':'waterlevel',\
    'SensorDepth':'waterlevel',\
@@ -136,7 +136,7 @@ def flag_rps_variable(ds, da, parse_times, verbose=True):
     # Calculate the QC flag (old format)
     if not parse_times:
         qg = da.attrs['quality_group']
-        Q1 = ds[qg].values.astype(np.double)
+        Q1 = ds['Qual1'].values.astype(np.double)
         qgen = 'quality_group'
         # Matt's advice was to use flag = 1 or 2
         mask = calculate_qc_mask_old(Q1, qg, 1, 2) 
@@ -187,8 +187,13 @@ def process_rps_file(filename, RPSvars=RPSdefault, parse_times=True, verbose=Tru
     dsr = xr.open_dataset(filename, decode_times=parse_times)
 
     # Check for time variable
-    if 'Time' not in dsr.coords.keys():
-        raise(ValueError('No ''Time'' coordinate in file ' + filename))
+    if parse_times:
+        if 'Time' not in dsr.coords.keys():
+            raise(ValueError('No ''Time'' coordinate in file ' + filename))
+    else:
+        if 'Time' not in dsr.data_vars.keys():
+            if 'Time' not in dsr.coords.keys():
+                raise(ValueError('No ''Time'' coordinate in file ' + filename))
 
     # Convert time (for old format)
     if not parse_times:
@@ -202,6 +207,7 @@ def process_rps_file(filename, RPSvars=RPSdefault, parse_times=True, verbose=Tru
     # Convert the data variables and insert them into the output object
     non_vars = []
     for varname in dsr.data_vars.keys():
+        print(varname)
         if varname in RPSvars.keys():
             newname = RPSvars[varname]
             V = convert_rps_variable(dsr, time, varname, newname, verbose)
@@ -222,7 +228,7 @@ def process_rps_file(filename, RPSvars=RPSdefault, parse_times=True, verbose=Tru
     ds.attrs.update({'stationname':name})
     ds.attrs.update({'original_file':filename})
 
-    # Fix the project code
+    # Fix the project code (this could be moved back to the notbook level)
     if 'project' in ds.attrs:
         if 'metocean' in lscm(ds.attrs['project']):
             jx = ds.attrs['project'].find('J')

@@ -39,8 +39,13 @@ def from_nc(filename, trip=None, RPSvars=None, parse_times=True, verbose=True):
     fullpath = os.path.join(folder, file)
 
     # Call RPS reader
-    dsr, ds = read_RPS.process_rps_file(fullpath, RPSvars, parse_times, verbose)
-    
+    if RPSvars:
+        dsr, ds = read_RPS.process_rps_file(fullpath, RPSvars=RPSvars,\
+                                            parse_times=parse_times, verbose=verbose)
+    else:
+        dsr, ds = read_RPS.process_rps_file(fullpath,\
+                                            parse_times=parse_times, verbose=verbose)
+                
     # xwrap RPS class
     rr = RPS(ds, verbose=verbose) # change back later
 
@@ -51,9 +56,14 @@ def from_nc(filename, trip=None, RPSvars=None, parse_times=True, verbose=True):
     rr.ds.attrs['instrument_model']   = read_RPS.lscm(dsr.attrs['logging_system'])
 
     if len(rr.ds.attrs['instrument_serial_number']) == 0:
-        if verbose:
-            print('Setting serial number to RPS dataset ID')
-        rr.ds.attrs['instrument_serial_number'] = dsr.attrs['dms_series_id']
+        try:
+            rr.ds.attrs['instrument_serial_number'] = dsr.attrs['dms_series_id']
+            if verbose:
+                print('Setting serial number to RPS dataset ID')
+        except:
+            if verbose:
+                print('No serial number')
+            pass
 
     # Add trip (important for multi-phase deployments)
     if trip is not None:
