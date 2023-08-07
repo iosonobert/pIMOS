@@ -8,6 +8,7 @@ import xarray as xr
 import numpy as np 
 from datetime import datetime, timedelta
 
+
 RPSdefault = {
    'SeaWaterTemp':'temperature',\
    'SeaWaterTemp1':'temperature',\
@@ -20,6 +21,7 @@ RPSdefault = {
 
 RPScoords = {
    'Height':'nominal_instrument_height_asb',
+   'Height1':'nominal_instrument_height_asb',
    'DepthHeight': 'nominal_site_depth',
    'Longitude':'nominal_longitude',
    'Latitude':'nominal_latitude',\
@@ -31,10 +33,10 @@ RPScoords = {
 ############
 
 def scm(s):
-    return s.lstrip().rstrip().replace(' ','_').replace('-','_')
+    return s.lstrip().rstrip().replace(' - ','_').replace(' ','_').replace('-','_')
 
 def lscm(s):
-    return s.lower().lstrip().rstrip().replace(' ','_').replace('-','_')
+    return s.lower().lstrip().rstrip().replace(' - ','_').replace(' ','_').replace('-','_')
 
 def get_arr_dict(dict, var):
     return np.array([dict[dc][var] for dc in dict])
@@ -50,7 +52,7 @@ def process_depth_attr(nc):
 def get_station_name(nc, stat_attr='location'):
     ### Not really sure about this one, replaced ctr with 0 for now
     site = nc.attrs[stat_attr]
-    site = site.lstrip().rstrip().replace(' - ','_').replace(' ','_').replace('-','_')
+    site = lscm(site)
     long_site = '%s_%04d'% (site,0)
     return site, long_site
 
@@ -223,6 +225,21 @@ def process_rps_file(filename, RPSvars=RPSdefault, parse_times=True, verbose=Tru
         elif attr in dsr.data_vars.keys():
             ds.attrs[RPScoords[attr]] = dsr[attr].values
 
+    # Check for failed instrument height
+    if 'nominal_instrument_height_asb' not in ds.attrs.keys():
+        try:
+            for varname in RPSdefault.keys():
+                if varname in dsr.data_vars.keys():
+                    if 'height' in dsr[varname].attrs.keys():
+                        ds.attrs['nominal_instrument_height_asb'] = \
+                            dsr[varname].attrs['height'].astype('float')
+        except:
+            raise ValueError('Error looking for instrument height: ' + filename)
+
+    # Convert site depth if necessary
+    if ds.attrs['nominal_site_depth'] > 0:
+        ds.attrs['nominal_site_depth'] = ds.attrs['nominal_site_depth'] * -1
+
     # Get the station name to attrs
     _, name = get_station_name(ds)
     ds.attrs.update({'stationname':name})
@@ -230,9 +247,9 @@ def process_rps_file(filename, RPSvars=RPSdefault, parse_times=True, verbose=Tru
 
     # Fix the project code (this could be moved back to the notbook level)
     if 'project' in ds.attrs:
-        if 'metocean' in lscm(ds.attrs['project']):
+        if 'met' in lscm(ds.attrs['project']):
             jx = ds.attrs['project'].find('J')
-            ds.attrs['project'] = ds.attrs['project'][jx:]
+            ds.attrs['project'] = ds.attrs['project'][jx:jx+5]
 
     if verbose:
         if non_vars:

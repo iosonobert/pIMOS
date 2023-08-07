@@ -311,4 +311,25 @@ def from_fv01_archive(files, stack_variables, **kwargs):
 
     return rr
 
+
+# Function to find all files in archive folder for a list of selected instruments
+def get_files(archive_dir, deployment, mooring, instruments):
+    files = []
+    for instrument in instruments:
+        f_format = '*[[]{}[]]*[[]{}[]]*[[]{}[]]*.nc'.format(deployment, mooring, instrument)
+        files += glob.glob(os.path.join(archive_dir, f_format))
+    
+    if len(files) == 0:
+        raise(Exception("No files found"))
+        
+    return files
+
+
+def check_files(files, var):
+    files_in = np.full(len(files), False)
+    for xx, file in enumerate(files):
+        ds = xr.open_dataset(file)
+        if var in ds.data_vars.keys():
+            files_in[xx] = True
+    return files_in
     
