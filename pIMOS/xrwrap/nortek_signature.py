@@ -19,7 +19,8 @@ import os
 from afloat.time import num2date_lk as num2date_lk
 
 # import zutils.xrwrap as xrwrap
-import pIMOS.xrwrap.xrwrap as xrwrap
+# import pIMOS.xrwrap.xrwrap as xrwrap
+import pIMOS.xrwrap.pimoswrap as pimoswrap 
 from pIMOS.utils.nortek_signature_utils import beam2inst, inst2earth
 
 # import turbo_lance
@@ -28,6 +29,12 @@ from pIMOS.utils.nortek_signature_utils import beam2inst, inst2earth
 
 deg2rad = np.pi / 180.
 rad2deg = 180./np.pi
+
+class_attrs = {
+        'title': 'Measured data from a Nortek Signature',
+        'source': 'pIMOS',
+        'process_level': 1
+    }
 
 def from_ad2cp(filename, nens=None, dat=None, hasb=0):
         
@@ -196,7 +203,7 @@ def from_ad2cp(filename, nens=None, dat=None, hasb=0):
     ds['echo'] = ds.echo.astype(float)
     ds.attrs = attrs
 
-
+    ds.attrs.update(class_attrs)
     rr = NORTEK_SIGNATURE(ds)
 
     #############################
@@ -383,6 +390,7 @@ def from_ad2cp_dv10(filename, nens=None, dat=None, hasb=0):
     ds['echo'] = ds.echo.astype(float)
     ds.attrs = attrs
 
+    ds.attrs.update(class_attrs)
     rr = NORTEK_SIGNATURE(ds)
 
     #############################
@@ -401,12 +409,9 @@ def from_ad2cp_dv10(filename, nens=None, dat=None, hasb=0):
 
     return rr, rr.ds   
 
-class NORTEK_SIGNATURE(xrwrap.xrwrap):
+class NORTEK_SIGNATURE(pimoswrap.pimoswrap):
     
-    class_attrs = {
-            'title': 'Measured data from a Nortek Signature',
-            'source': 'pIMOS' 
-        }
+    class_attrs = class_attrs 
 
     def __init__(self, ds):
         

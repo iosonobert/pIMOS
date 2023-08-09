@@ -23,12 +23,18 @@ import os
 # import zutils.xrwrap as xrwrap
 from pyrsktools import RSK
 
-import pIMOS.xrwrap.xrwrap as xrwrap
+# import pIMOS.xrwrap.xrwrap as xrwrap
+import pIMOS.xrwrap.pimoswrap as pimoswrap 
 
 font = {'weight' : 'normal',
         'size'   : 12}
 matplotlib.rc('font', **font)
 
+class_attrs = {
+            'title': 'Measured data from an RBR Data Logger',
+            'source': 'RBR Data Logger', # Could be more specific.
+            'process_level': 1
+        }
 
 def from_rsk_duet(filename):
     """
@@ -138,19 +144,16 @@ def from_netcdf(infile):
    
     classhandler = RBR_DUET
 
-    rr, ds = xrwrap._from_netcdf(infile, classhandler)
+    rr, ds = pimoswrap._from_netcdf(infile, classhandler)
     
     return rr, ds
 
 ##########################
 # Actual xarray wrap #####
 ##########################
-class RBR_DUET(xrwrap.xrwrap):
+class RBR_DUET(pimoswrap.pimoswrap):
 
-    class_attrs = {
-            'title': 'Measured data from an RBR Data Logger',
-            'source': 'RBR Data Logger' # Could be more specific.
-        }
+    class_attrs = class_attrs 
 
     def __init__(self, ds):
         

@@ -22,6 +22,13 @@ import pIMOS.xrwrap.xrwrap as xrwrap
 import pIMOS.utils.file as zfile
 
 
+class_attrs = {
+            'title': 'Measured data from a WetLABS data logger',
+            'source': 'pIMOS', # Could be more specific.
+            'process_level': 1
+        }
+
+
 def from_log(filename):
     """
     Spin up from serial log file
@@ -35,7 +42,11 @@ def from_log(filename):
             line = fop.readline()
         pass
 
-    df = pd.read_csv(filename, skiprows=skiprows, delim_whitespace=True, names=['date', 'time', 'c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8', 'c9'])
+    df = pd.read_csv(filename, 
+                     skiprows=skiprows, 
+                     delim_whitespace=True, 
+                     names=['date', 'time', 'c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8', 'c9'],
+                     encoding='latin-1')
 
     df.time = df.date + ' ' + df.time
     df = df.drop(['date'], axis=1)
@@ -69,11 +80,6 @@ def from_netcdf(infile):
 ##########################
 class WETLABS_NTU(xrwrap.xrwrap):
 
-    class_attrs = {
-            'title': 'Measured data from a WetLABS data logger',
-            'source': 'pIMOS' # Could be more specific.
-        }
-
     def __init__(self, ds):
         
         print('Initialising accessor.')
@@ -81,7 +87,7 @@ class WETLABS_NTU(xrwrap.xrwrap):
 
         self.store_raw_file_attributes(ds)
 
-        self.enforce_these_attrs(self.class_attrs)
+        self.enforce_these_attrs(class_attrs)
         
     def _calibrate_device(self, device_file):
         """

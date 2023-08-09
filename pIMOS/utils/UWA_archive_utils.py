@@ -97,7 +97,8 @@ def strcmpi(lst, string):
     return rtn
     pass
 
-def plot_echo(rr, db_data, mooring, attributes, variable='echo', width=65, cmap='magma'):
+def plot_echo(rr, db_data, mooring, attributes, variable='echo', width=65,\
+             cmap='magma', experiment=None, recovered=None):
     
     #%matplotlib inline
     fig = plt.figure(figsize=(20,3))
@@ -117,7 +118,7 @@ def plot_echo(rr, db_data, mooring, attributes, variable='echo', width=65, cmap=
     title= ' | '.join([str(attributes[i]) for i in attributes])
     plt.title(title)
 
-    add_mooring_dates(db_data, mooring, plt.gca())
+    add_mooring_dates(db_data, mooring, plt.gca(), experiment=experiment, recovered=recovered)
     plt.show()
 
     return fig
@@ -185,23 +186,59 @@ def add_mooring_dates(db_data, mooring, ax, experiment=None, recovered=None):
     
     pass
 
-def pIMOS_export(rr, archive_dir, file_version, model, file_append=''):
+def pIMOS_get_archive_folder(archive_dir, file_version):
+    """
+    Get the specific archive folder for the pIMOS version, and file process_level. 
+    """
 
-    folder = os.path.join(archive_dir, model)
     folder = os.path.join(archive_dir, 'pimos_v'+__version__)
     if not os.path.exists(folder):
         os.mkdir(folder)
 
-    # fv = 'FV{:02.0f}'.format(file_version)
+    if type(file_version) is str:
+        file_version = 0
+
     fv = 'FV{:02.0f}'.format(file_version)
     folder = os.path.join(folder, fv)
     if not os.path.exists(folder):
         os.mkdir(folder)
 
+    return folder
+
+def pIMOS_get_archive_folder_model(archive_dir, file_version, model):
+
+    folder = pIMOS_get_archive_folder(archive_dir, file_version)
+    
     folder = os.path.join(folder, model)
     if not os.path.exists(folder):
         os.mkdir(folder)
-        
+
+    return folder
+
+def pIMOS_get_my_export_folder(rr, archive_dir):
+
+    model        = rr.ds.attrs['pimos_nickname']
+    file_version = rr.ds.attrs['process_level']
+    folder       = pIMOS_get_archive_folder_model(archive_dir, file_version, model)
+
+    return folder
+
+# def pIMOS_export_old(rr, archive_dir, model, file_append=''):
+
+#     file_version = rr.ds.attrs['process_level']
+#     file_version = rr.ds.attrs['process_level']
+#     folder = pIMOS_get_archive_folder_model(archive_dir, file_version, model)
+
+#     print(folder)
+
+#     # rr.folder = folder
+#     # rr.file_ = serial
+    
+#     rr.export( naming_method='convention', export_directory=folder)
+
+def pIMOS_export(rr, archive_dir, file_append=''):
+
+    folder = pIMOS_get_my_export_folder(rr, archive_dir)
     print(folder)
 
     # rr.folder = folder

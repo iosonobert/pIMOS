@@ -37,6 +37,12 @@ font = {'weight' : 'normal',
         'size'   : 15}
 matplotlib.rc('font', **font)
 
+class_attrs = {
+            'title': 'Mooring made by stacking multipe files',
+            'source': 'pIMOS',
+            'process_level': 2 
+        }
+
 class PL2_STACKED_MOORING(pimoswrap.pimoswrap):
 
     def __init__(self, ds):
@@ -45,10 +51,6 @@ class PL2_STACKED_MOORING(pimoswrap.pimoswrap):
 
         self.store_raw_file_attributes(ds)
 
-        class_attrs = {
-            'title': 'Mooring made by stacking multipe files',
-            'source': 'pIMOS' 
-        }
         self.enforce_these_attrs(class_attrs)
 
     def knockdown_correct(rr, bottom_time, bottom_pressure, bottom_hasb):
@@ -150,6 +152,14 @@ def from_fv01_archive(files, stack_variables, **kwargs):
         ds = xr.open_dataset(file)
         rr = pimoswrap.pimoswrap() # Just use the base class here
         rr.wrap(ds)
+
+        print(ds.lat_nom.values, ds.lon_nom.values) # These should be complete
+        if i == 0:
+            lat_nom = ds.lat_nom
+            lon_nom = ds.lon_nom
+        else:
+            assert(lon_nom.values == ds.lon_nom.values)
+            assert(lat_nom.values == ds.lat_nom.values)
 
         for attr in attrs_to_join:
             joined_attrs[attr] += [ds.attrs[attr]]
@@ -282,8 +292,20 @@ def from_fv01_archive(files, stack_variables, **kwargs):
             coords = {z_method: z_stacked}
         )
     ds_stacked.update({'source':V})
+
+    print(lon_nom)
+    print(lat_nom)
+    # ds_stacked['lon_nom'] = lon_nom
+    # ds_stacked['lat_nom'] = lat_nom
+    # ds_stacked.assign_coords({'lon_nom': lon_nom})
+    # ds_stacked.assign_coords({'lat_nom': lat_nom})
     
+    ds_stacked.attrs.update(class_attrs)
+
     rr = PL2_STACKED_MOORING(ds_stacked)
+
+    rr.ds.lon_nom.values = lon_nom.values
+    rr.ds.lat_nom.values = lat_nom.values
 
     ####################
     ## ATTRIBUTE WORK ##

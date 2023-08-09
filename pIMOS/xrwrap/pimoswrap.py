@@ -72,11 +72,19 @@ class pimoswrap(xrwrap.xrwrap):
                                                     'nominal_longitude': '',
                                                     'nominal_site_depth': '',
                                                     'timezone': '',
-                                                    'process_level': '',
+                                                    'process_level': '',                         # This can be a default. Make it 1 when sure! 
+                                                    'pimos_nickname': 'no_nickname',                        # This is the nickname that will be used for archiving.  
                                                     'is_profile_data': 0}.keys()
         else:
             raise(Exception("{} is not a valid process level. You've cooked it."))
 
         return _required_attrs
+
+    def assign_nickname(self, nickname):
+        """
+        Assign the pimos_nickname attribute. Needed for export. 
+        """
+
+        self.ds.attrs['pimos_nickname'] = nickname
 
 #%%

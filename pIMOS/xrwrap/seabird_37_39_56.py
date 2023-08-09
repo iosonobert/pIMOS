@@ -21,13 +21,19 @@ import datetime
 import os
 
 # import zutils.xrwrap as xrwrap
-import pIMOS.xrwrap.xrwrap as xrwrap
+# import pIMOS.xrwrap.xrwrap as xrwrap
+import pIMOS.xrwrap.pimoswrap as pimoswrap 
 from pIMOS.read import SEABIRD_37_39_56 as read_sbd
 
 font = {'weight' : 'normal',
         'size'   : 12}
 matplotlib.rc('font', **font)
 
+class_attrs = {
+            'title': 'Measured data from a Seabird Data Logger',
+            'source': 'Seabird Data Logger', # Could be more specific.
+            'process_level': 1
+        }
 
 def from_asc(filename):
     """
@@ -38,6 +44,7 @@ def from_asc(filename):
     ds.attrs['raw_file_name']      = os.path.split(filename)[1]
     ds.attrs['raw_file_directory'] = os.path.split(filename)[0]
         
+    ds.attrs.update(class_attrs)
     rr = SEABIRD_37_39_56(ds)
         
     # This is toward process level 1 stuff
@@ -55,6 +62,7 @@ def from_cnv(filename, jdate_bug_fix=False):
     ds.attrs['raw_file_name']      = os.path.split(filename)[1]
     ds.attrs['raw_file_directory'] = os.path.split(filename)[0]
         
+    ds.attrs.update(class_attrs)
     rr = SEABIRD_37_39_56(ds)
     
     # This is toward process level 1 stuff
@@ -64,24 +72,19 @@ def from_cnv(filename, jdate_bug_fix=False):
 
 def from_netcdf(infile):
     """
-    Pass straight to the main xrwrap from_netcdf method.
+    Pass straight to the main pimoswrap from_netcdf method.
     """
    
     classhandler = SEABIRD_37_39_56
 
-    rr, ds = xrwrap._from_netcdf(infile, classhandler)
+    rr, ds = pimoswrap._from_netcdf(infile, classhandler)
     
     return rr, ds
 
 ##########################
 # Actual xarray wrap #####
 ##########################
-class SEABIRD_37_39_56(xrwrap.xrwrap):
-
-    class_attrs = {
-            'title': 'Measured data from a Seabird Data Logger',
-            'source': 'Seabird Data Logger' # Could be more specific.
-        }
+class SEABIRD_37_39_56(pimoswrap.pimoswrap):
 
     def __init__(self, ds):
         
@@ -90,7 +93,7 @@ class SEABIRD_37_39_56(xrwrap.xrwrap):
 
         self.store_raw_file_attributes(ds)
 
-        self.enforce_these_attrs(self.class_attrs)
+        self.enforce_these_attrs(class_attrs)
 
 
     def add_variable_attributes(self):

@@ -33,6 +33,12 @@ import importlib
 deg2rad = np.pi / 180.
 rad2deg = 180./np.pi
 
+class_attrs = {
+            'title': 'Measured data from a TDRI ADCP',
+            'source': 'pIMOS', # Could be more specific.
+            'process_level': 1 
+        }
+
 def from_pdo(filename, rotate=False, mapbins=False, verbose=False):
     """
     Read PD0 file with Dolfyn. 
@@ -261,11 +267,6 @@ def from_netcdf(infile):
 ##########################
 class RDI_ADCP_PD02(xrwrap.xrwrap):
 
-    class_attrs = {
-            'title': 'Measured data from a TDRI ADCP',
-            'source': 'pIMOS' # Could be more specific.
-        }
-
     def __init__(self, ds):
         
         print('Initialising accessor.')
@@ -273,36 +274,7 @@ class RDI_ADCP_PD02(xrwrap.xrwrap):
 
         self.store_raw_file_attributes(ds)
         
-        self.enforce_these_attrs(self.class_attrs)
-
-    # def export(self, final=False, final_folder=None, csv=True):
-    #     """
-    #     Overloading the base class export function.
-    #     """
-
-    #     # to NetCDF is not working after the new dolfyn update
-    #     # outname = self.outname()
-    #     outname = self.file_
-    #     folder = self.folder
-
-    #     self.parse_attributes()
-
-    #     if final:
-    #         self.ds.attrs['Disclaimer'] = self.disclaimer
-    #         outname = outname + 'finalised'
-    #         if not final_folder is None:
-    #             folder = final_folder
-
-    #     self.ds.close() # Force close
-
-    #     if csv:
-    #         self.ds.to_dataframe().to_csv('{folder}//{file_}.csv'.format(folder=folder, file_=outname))
-
-    #     nc_file = '{folder}//{file_}.nc'.format(folder=folder, file_=outname)
-    #     self.ds.to_netcdf(path=nc_file)
-
-    #     return self.ds
-
+        self.enforce_these_attrs(class_attrs)
     
     #######
     # Property methods
