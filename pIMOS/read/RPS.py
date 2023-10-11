@@ -271,7 +271,8 @@ def get_RPS_summary(nc):
 
     # Add record length and start time
     subdict['start'] = nc['Time'][0].values
-    subdict['time'] = (nc['Time'][-1] - nc['Time'][0]).values
+    subdict['timestep'] = (nc['Time'][-1] - nc['Time'][0]).values
+    subdict['end'] = nc['Time'][-1].values
 
     # Add location
     subdict['location'] = nc.attrs['location']
