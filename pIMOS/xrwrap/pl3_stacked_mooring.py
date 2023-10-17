@@ -5,38 +5,19 @@ Created on Mon Jul 30 15:17:42 2018
 @author: 20270917
 """
 #%%
-import matplotlib.pyplot as plt
 
-import pandas
+
+import matplotlib.pyplot as plt
+import cmocean as cm
 import numpy as np
 import xarray as xr
 import matplotlib
-import datetime
-import os 
-import pdb
-import glob
-
-import importlib 
-from collections import OrderedDict
-
 import gsw
-
-# import zutils.xrwrap as xrwrap
-# import zutils.stats as zstats
-# import zutils.file as zfile
-# import zutils.time as ztime
-
-import afloat.time as ztime
-
-# import pIMOS.xrwrap.pimos_pls as pls
-# import pIMOS.xrwrap.seabird_37_39_56 as wrap_sbd
-# import pIMOS.xrwrap.wetlabs_ntu as wetlabs_ntu
-# import pIMOS.xrwrap.nortek_signature as nortek_signature
-# import pIMOS.xrwrap.nortek_vector as nortek_vector 
+# import afloat.time as ztime
 import pIMOS.xrwrap.pimoswrap as pimoswrap 
-
 from iwaves.utils.fitting import fit_bmodes_linear
-from iwaves.utils.density import fit_rho, single_tanh_rho, double_tanh_rho_new
+# from iwaves.utils.density import fit_rho, single_tanh_rho, double_tanh_rho_new
+
 
 font = {'weight' : 'normal',
         'size'   : 15}
@@ -47,6 +28,7 @@ class_attrs = {
             'source': 'pIMOS',
             'process_level': 3 
         }
+
 
 def from_fv02(mooring_nc_fv02, S=35.6, **kwargs):
     """
@@ -67,10 +49,13 @@ def from_fv02(mooring_nc_fv02, S=35.6, **kwargs):
 
     return rr
 
+
 class PL3_STACKED_MOORING(pimoswrap.pimoswrap):
 
-    def __init__(self, ds):
-        print('Initialising accessor.')
+    def __init__(self, ds, verbose=True):
+        self.verbose = verbose
+        if self.verbose:
+            print('Initialising accessor.')
         self.ds = ds # XRWRAP compatibility
 
         self.store_raw_file_attributes(ds)
@@ -90,17 +75,21 @@ class PL3_STACKED_MOORING(pimoswrap.pimoswrap):
         #     add flags
         #     short term harmonic fit
 
-    def knockdown_correct(rr):
+    def knockdown_correct(self):
         """
         SHOULD BE DONE AT LEVEL 2.
         """
         raise(Exception)
 
+
     def fill_nans(self):
 
         print('Filling nans in Temperature')
-        self.ds['Temperature'] = self.ds['Temperature'].interpolate_na('z_nom')
+        self.ds['temperature'] = self.ds['temperature'].interpolate_na('z_nom', fill_value="extrapolate")
+        if np.sum(np.isnan(self.ds['temperature'])) > 0:
+            self.ds['temperature'] = self.ds['temperature'].interpolate_na('time', fill_value="extrapolate")
         print('Done.')
+
 
     def calc_salinity(self, method='constant_sal', S=35.6):
         """
@@ -125,11 +114,18 @@ class PL3_STACKED_MOORING(pimoswrap.pimoswrap):
 
         ds = self.ds
 
-        ds['Salinity'] = xr.zeros_like(ds.Temperature) + S
-        ds['Salinity'].attrs['units'] = 'PSU'
+        self.ds['salinity'] = xr.zeros_like(ds.temperature) + S
+        self.ds['salinity'].attrs['units'] = 'PSU'
 
         print('Done')
 
+
+    def estimate_pressure(self):
+        ds = self.ds
+        site_depth = 0 # -1*ds.attrs['nominal_site_depth']
+        p = site_depth - ds['z_nom'].values[...,np.newaxis]*np.ones((1, len(ds.time.values)))
+        return p
+    
 
     def calc_density(self, method='constant_sal', S=35.6):
         """
@@ -138,35 +134,51 @@ class PL3_STACKED_MOORING(pimoswrap.pimoswrap):
         Must have lat_nom and lon_nom also.
         """
 
-        print('Calculating Density')
+        if self.verbose:
+            print('Calculating Density')
 
         ds = self.ds
 
-        SP = ds.Salinity
-        CT = ds.Temperature
-        p  = ds.Pressure # Don't worry about tides it's not sensitive enough
-        ds['Depth'] = -ds.z_nom # Don't worry about tides it's not sensitive enough
+        # Determine whether to invert depth
+        if ds['z_nom'][0] > ds['z_nom'][-1]:
+            if self.verbose:
+                print('Flipping depth var')
+            ds['z_nom'] = -1 * ds['z_nom']
+
+        SP = ds.salinity
+        CT = ds.temperature
+
+        if 'pressure' in ds.data_vars.keys():
+            p  = ds.pressure # Don't worry about tides it's not sensitive enough
+        else:
+            p = self.estimate_pressure()
+            if self.verbose:
+                print('Pressure estimated from nominal depth.')
+        # self.ds['pressure'] = xr.DataArray(data=p, coords=ds.coords)
+
         lon = ds.lon_nom.values
         lat = ds.lat_nom.values
 
-        SA = gsw.SA_from_SP(SP, ds['Depth'], lon, lat)
+        SA = gsw.SA_from_SP(SP, ds['z_nom'], lon, lat)
 
-        ds['Density'] = gsw.rho(SA, CT, ds['Depth'])
-        ds['Density'].attrs['units'] = 'kg.m-3'
+        # self.ds['sea_water_density'] = gsw.rho(SA, CT, ds['z_nom'])
+        # self.ds['sea_water_density'].attrs['units'] = 'kg.m-3'
 
-        ds['PotentialDensity'] = gsw.pot_rho_t_exact(SA, CT, ds['Depth'], 0)
-        ds['PotentialDensity'].attrs['units'] = 'kg.m-3'
+        self.ds['sea_water_potential_density'] = gsw.pot_rho_t_exact(SA, CT, ds['z_nom'], 0)
+        self.ds['sea_water_potential_density'].attrs['units'] = 'kg.m-3'
 
-        print('Done')
+        if self.verbose:
+            print('Done')
 
-    def calc_timeslow(rr, slow_tstep_h=3):
+
+    def calc_timeslow(self, slow_tstep_h=3):
         """
         Create a slow time for background quantities.
         """
         
         print('Creating slow time')
 
-        time = rr.ds.time.values
+        time = self.ds.time.values
 
         slow_tstep = np.timedelta64(slow_tstep_h, 'h').astype('timedelta64[m]')
         
@@ -175,13 +187,14 @@ class PL3_STACKED_MOORING(pimoswrap.pimoswrap):
         
         timeslow = np.arange(t_start, t_end + slow_tstep, slow_tstep)
         
-        rr.ds['timeslow'] = timeslow 
+        self.ds['timeslow'] = timeslow 
         # ADD ATTRIBUTES
-        rr.ds['timeslow'].attrs['slow_tstep_h'] = slow_tstep_h
+        self.ds['timeslow'].attrs['slow_tstep_h'] = slow_tstep_h
         
         print('Done')
-        
-    def calc_bmodes(self, bar_tstep_h):
+
+
+    def calc_bmodes(self, bar_tstep_h, density_func='double_tanh_new'):
         """
         Calculate buoyancy amplitude of internal wave modes using iwaves.fit_bmodes_linear
         """
@@ -193,9 +206,6 @@ class PL3_STACKED_MOORING(pimoswrap.pimoswrap):
         ### some missing code of Raysons here
         nmodes = 4
         modes = np.arange(0,nmodes)
-
-        # Fit the density
-        density_func = 'double_tanh_new'
 
         # Set frequency dimensions
         # freqs = ['M2','M4','M6']
@@ -209,8 +219,7 @@ class PL3_STACKED_MOORING(pimoswrap.pimoswrap):
         Nzfit = 100
         zfit = np.linspace(zmin, zmax, Nzfit)
 
-
-        rho      = self.ds['PotentialDensity']
+        rho      = self.ds['sea_water_potential_density']
         mask     = ~np.all(np.isnan(rho), axis=0)
         time     = self.ds['time']
         timeslow = self.ds['timeslow']
@@ -245,8 +254,6 @@ class PL3_STACKED_MOORING(pimoswrap.pimoswrap):
                 A_t, phi, rhofit, rhofit_full, iw = \
                                 fit_bmodes_linear(rho_2fit, rhobar, Z, zmin, modes,\
                                 Nzfit, density_func=density_func)
-        #                                          (rho, rhoz, z,  zmin, modes,\
-        #         Nz=100, density_func='single_tanh', full_output=True):
             
                 # Update the Dataset
                 if iw.Fi.status == 0:
@@ -275,6 +282,24 @@ class PL3_STACKED_MOORING(pimoswrap.pimoswrap):
             self.ds[dv] = ds_bmodes[dv]
 
         print('Done')
+
+    
+    def plot_background(self, warnbars=False):
+        deninv_phs = check_monotonicity(self.ds, 'rhofit', 'z_interp')
+        fig, ax = plt.subplots(2,1, figsize=(12,6), gridspec_kw={'hspace':0.05})
+        fg = self.ds['rhobar'].T.plot(ax=ax[0], cmap=cm.cm.deep, cbar_kwargs={'pad':0.01})
+        ax[0].set_xticklabels('')
+        fh = self.ds['N2'].T.plot(ax=ax[1], cmap=cm.cm.solar, vmin=0., vmax=0.0004, cbar_kwargs={'pad':0.01})
+        ax[1].set_xlabel('')
+        ax[1].set_title('')
+        fg.colorbar.set_label(label=(self.ds['rhobar'].attrs['long_name'] + '\n[' + \
+                                self.ds['rhobar'].attrs['units'] + ']'), size=10)
+        fh.colorbar.set_label(label=(self.ds['N2'].attrs['long_name'] + '\n[' + \
+                                self.ds['N2'].attrs['units'] + ']'), size=10)
+        if warnbars:
+            add_warnbars(self.ds['time'], deninv_phs, ax)
+        return fig, ax
+
         
     
 def check_monotonicity(xarr, xvar, dfdim):
@@ -287,8 +312,8 @@ def add_warnbars(time, warn_idx, ax):
     for txx in time[warn_idx].values:
         for x in ax:
             # Get plot bounds
-            x.axvline(txx, ymin=0, ymax=0.1, c='k', lw=1)
-            x.axvline(txx, ymin=0.9, ymax=1., c='k', lw=1)
+            x.axvline(txx, ymin=0, ymax=0.1, c='k', lw=0.2)
+            x.axvline(txx, ymin=0.9, ymax=1., c='k', lw=0.2)
 
 def gen_empty_bmodes_ds(time, timeslow, Nzfit, Nmode, zmin, zmax=0, freqvals=[1]):
 
