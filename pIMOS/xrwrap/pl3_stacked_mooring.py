@@ -82,16 +82,16 @@ class PL3_STACKED_MOORING(pimoswrap.pimoswrap):
         raise(Exception)
 
 
-    def fill_nans(self):
+    def fill_nans(self, tvar='temperature'):
 
         print('Filling nans in Temperature')
-        self.ds['temperature'] = self.ds['temperature'].interpolate_na('z_nom', fill_value="extrapolate")
-        if np.sum(np.isnan(self.ds['temperature'])) > 0:
-            self.ds['temperature'] = self.ds['temperature'].interpolate_na('time', fill_value="extrapolate")
+        self.ds[tvar] = self.ds[tvar].interpolate_na('z_nom', fill_value="extrapolate")
+        if np.sum(np.isnan(self.ds[tvar])) > 0:
+            self.ds[tvar] = self.ds[tvar].interpolate_na('time', fill_value="extrapolate")
         print('Done.')
 
 
-    def calc_salinity(self, method='constant_sal', S=35.6):
+    def calc_salinity(self, method='constant_sal', S=35.6, tvar='temperature'):
         """
         Calculate salinity using one of a number of methods:
 
@@ -114,7 +114,7 @@ class PL3_STACKED_MOORING(pimoswrap.pimoswrap):
 
         ds = self.ds
 
-        self.ds['salinity'] = xr.zeros_like(ds.temperature) + S
+        self.ds['salinity'] = xr.zeros_like(ds[tvar]) + S
         self.ds['salinity'].attrs['units'] = 'PSU'
 
         print('Done')
@@ -127,7 +127,7 @@ class PL3_STACKED_MOORING(pimoswrap.pimoswrap):
         return p
     
 
-    def calc_density(self, method='constant_sal', S=35.6):
+    def calc_density(self, method='constant_sal', S=35.6, tvar='temperature'):
         """
         Calculate density using GSW. Must have Temperature, Salinity fields. 
         z_nom is used for the pressure - tide and knockdown assumed small.
@@ -146,7 +146,7 @@ class PL3_STACKED_MOORING(pimoswrap.pimoswrap):
             ds['z_nom'] = -1 * ds['z_nom']
 
         SP = ds.salinity
-        CT = ds.temperature
+        CT = ds[tvar]
 
         if 'pressure' in ds.data_vars.keys():
             p  = ds.pressure # Don't worry about tides it's not sensitive enough
@@ -254,6 +254,7 @@ class PL3_STACKED_MOORING(pimoswrap.pimoswrap):
                 A_t, phi, rhofit, rhofit_full, iw = \
                                 fit_bmodes_linear(rho_2fit, rhobar, Z, zmin, modes,\
                                 Nzfit, density_func=density_func)
+                # phi, c1, he, znew = iw(zmin, dz, mode)
             
                 # Update the Dataset
                 if iw.Fi.status == 0:
