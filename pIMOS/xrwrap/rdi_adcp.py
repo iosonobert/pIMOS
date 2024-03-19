@@ -267,6 +267,8 @@ def from_netcdf(infile):
 ##########################
 class RDI_ADCP_PD02(xrwrap.xrwrap):
 
+    class_attrs = class_attrs
+    
     def __init__(self, ds):
         
         print('Initialising accessor.')

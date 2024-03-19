@@ -80,6 +80,8 @@ def from_netcdf(infile):
 ##########################
 class WETLABS_NTU(xrwrap.xrwrap):
 
+    class_attrs = class_attrs
+    
     def __init__(self, ds):
         
         print('Initialising accessor.')

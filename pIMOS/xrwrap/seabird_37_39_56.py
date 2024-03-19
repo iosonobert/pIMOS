@@ -86,6 +86,8 @@ def from_netcdf(infile):
 ##########################
 class SEABIRD_37_39_56(pimoswrap.pimoswrap):
 
+    class_attrs = class_attrs
+    
     def __init__(self, ds):
         
         print('Initialising accessor.')
