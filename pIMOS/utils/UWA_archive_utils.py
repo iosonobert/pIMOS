@@ -311,3 +311,7 @@ def profiler_row_to_attrs(row):
             attributes[att] = ''
 
     return attributes
+
+
+def nonempty_attrs(rr):
+    return {k: v for k, v in rr.ds.attrs.items() if v} 

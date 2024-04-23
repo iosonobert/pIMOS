@@ -106,7 +106,7 @@ def _pimosInOutWaterQC(rr, start_date, end_date, year_1=1990, year_n=2200, delet
                      
 def pimosGlobalRangeQC():
     """
-    imosGlobalRangeQC checks that the parameter's values are within a global valid range. This must be strored in a config file or db. 
+    imosGlobalRangeQC checks that the parameter's values are within a global valid range. This must be stored in a config file or db. 
     """
     raise(NotImplementedError)
 
