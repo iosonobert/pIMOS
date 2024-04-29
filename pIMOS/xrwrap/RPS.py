@@ -96,6 +96,7 @@ class RPS(xrwrap.xrwrap):
         
         self.enforce_these_attrs(self.class_attrs)
 
+
     def plot_RPS_export(self, plt_vars, labels='short'):
 
         fig, ax = plt.subplots(len(plt_vars),1, figsize=(14,1.0*len(plt_vars)), gridspec_kw={'hspace':0.07})

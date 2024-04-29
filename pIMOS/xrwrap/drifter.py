@@ -8,11 +8,21 @@ Created on Tue Apr 02 2024
 import numpy as np
 import pandas as pd
 import xarray as xr
+from scipy.interpolate import UnivariateSpline
+import matplotlib.pyplot as plt
 
 ########### Would need to add this to requirements ############
 import pyproj as pp
 
 import pIMOS.xrwrap.pimoswrap as xrwrap
+import pIMOS.utils.UWA_archive_utils as ai 
+
+try:
+    from d2spike.despike_GN import qc0_Flags
+    from d2spike.despike import D2spikearray
+except:
+    print('d2spike not available')
+    pass
 
 class_attrs = {
             'title': 'GPS position data from a drifter',
@@ -89,6 +99,11 @@ def from_netcdf(infile):
     return rr, ds
 
 
+def fit_spline(x, y, xnew, s=0.0):
+    spl = UnivariateSpline(x, y, s=s)
+    return spl(xnew)
+
+
 ##########################
 # Actual xarray wrap #####
 ##########################
@@ -121,8 +136,8 @@ class DRIFTER(xrwrap.pimoswrap):
         # p = pp.Proj(proj=proj, zone=zone, ellps=ellps, south=south, **ppkwargs)
         # e, n = p(self.ds[lon_var], self.ds[lat_var])
         e, n = calc_east_north(self.ds[lon_var], self.ds[lat_var], proj=proj, zone=zone, ellps=ellps, south=south, **ppkwargs)
-        self.ds['Easting'] = xr.DataArray(e, dims='time')
-        self.ds['Northing'] = xr.DataArray(n, dims='time')
+        self.ds['easting'] = xr.DataArray(e, dims='time')
+        self.ds['northing'] = xr.DataArray(n, dims='time')
         return self
 
     # Function to calculate distance between each point in an array of lat/lon
@@ -143,6 +158,78 @@ class DRIFTER(xrwrap.pimoswrap):
     def UnphysicalQC(self, var_name, flag_name, thresh=3.0, flag_before=False, flag_after=False):
         qc_unphysical(self, var_name=var_name, flag_name=flag_name, thresh=thresh, flag_before=flag_before, flag_after=flag_after)
         return self
+    
+    def calc_vel(self, east_var='easting', north_var='northing', time_var='time', qc_var=None):
+        if qc_var is None:
+            good_flag = np.full(len(self.ds[time_var]), True)
+        elif isinstance(qc_var, str):
+            good_flag = self.ds[qc_var] == 0
+        else:
+            good_flag = qc_var
+
+        # Calculate the east-west and north-south velocity
+        east_vel = np.full(len(self.ds[time_var]), np.nan)
+        east_vel[good_flag] = np.gradient(self.ds[east_var][good_flag],\
+                               ((self.ds[time_var] - self.ds[time_var][0])[good_flag] / np.timedelta64(1, 's')))
+        self.ds['east_vel'] = xr.DataArray(east_vel, dims=[time_var],\
+                                           attrs={'units':'m s$^{-1}$', 'comments':'Second order centred in time gradient ($\\delta x / \\delta t$) (np.gradient)'})
+        
+        north_vel = np.full(len(self.ds[time_var]), np.nan)
+        north_vel[good_flag] = np.gradient(self.ds[north_var][good_flag],\
+                                ((self.ds[time_var] - self.ds[time_var][0])[good_flag] / np.timedelta64(1, 's')))
+        self.ds['north_vel'] = xr.DataArray(north_vel, dims=[time_var],\
+                                           attrs={'units':'m s$^{-1}$', 'comments':'Second order centred in time gradient ($\\delta x / \\delta t$) (np.gradient)'})
+        return self
+    
+
+    def despike_drifter(self, window=3, spike_dist=400, qc0_val=3.0, reinstate=0.2):
+
+        time = (self.ds.time.values - self.ds.time.values[0]) / np.timedelta64(1, 's')
+        east = self.ds.easting.values
+        north = self.ds.northing.values
+
+        # Calculate velocity with bad data included
+        self.calc_vel(qc_var=None)
+        north_vel = self.ds.north_vel.floatda.qc0_flags(val=qc0_val)
+        east_vel = self.ds.east_vel.floatda.qc0_flags(val=qc0_val)
+
+        north_background = north_vel.rolling(time=window, center=True, min_periods=window).mean()
+        north_hf = north_vel - north_background
+
+        east_background = east_vel.rolling(time=window, center=True, min_periods=window).mean()
+        east_hf = east_vel - east_background
+
+        north_hf, _ = north_hf.floatda.despike_gn23()
+        east_hf, _ = east_hf.floatda.despike_gn23()
+
+        # Fit splines to new data
+        nanx = np.isnan(north_hf) | np.isnan(east_hf)
+        if np.sum(~nanx) > 0:
+            north_fit = fit_spline(time[~nanx], north[~nanx], time)
+            east_fit = fit_spline(time[~nanx], east[~nanx], time)
+
+            # Spike dist from line
+            spike_dist_from_line = np.sqrt((north_fit - north)**2 + (east_fit - east)**2)
+            pos_flag = (spike_dist_from_line < spike_dist) &\
+                    (np.abs(north_vel - north_background) < reinstate) &\
+                    (np.abs(east_vel - east_background) < reinstate)
+        else:
+            pos_flag = np.ones_like(time, dtype=bool)
+
+        # Calc good speed
+        self.associate_qc_flag('latitude', 'position')
+        self.update_qc_flag_logical('qc_position', 'time', ~pos_flag, 1)
+        self.update_qc_flag_logical('qc_position', 'time', self.ds['qc_position'] != 1, 0)
+        self.associate_qc_flag('longitude', 'position')
+        if 'easting' in self.ds:
+            self.associate_qc_flag('easting', 'position')
+            self.associate_qc_flag('northing', 'position')
+        self.calc_vel(qc_var='qc_position')
+        return self
+    
+
+    def plot_drifter(self, size=20, qc_var='qc_position', cmap_var=None, utm=False, cmap='viridis', attrs=None):
+        return plot_drifter_map(self, size=size, qc_var=qc_var, cmap_var=cmap_var, utm=utm, cmap=cmap, attrs=attrs)
     
 
     # def flag_unphysical(self, var, threshold, **kwargs):
@@ -186,4 +273,47 @@ def qc_unphysical(rr, var_name, flag_name, thresh=3.0, flag_before=False, flag_a
     rr.update_qc_flag_logical(flag_name, 'time', ix, 1)
     return rr
 
-# def drifter_vel
+def get_drifter_aspect(rr):
+    lon_range = rr.ds.longitude.max() - rr.ds.longitude.min()
+    lat_range = rr.ds.latitude.max() - rr.ds.latitude.min()
+    return lon_range / lat_range
+
+def plot_drifter_map(rr, size=20, qc_var='qc_position', cmap_var=None, utm=False, cmap='viridis', attrs=None):
+
+    if utm:
+        pos_x = 'easting'
+        pos_y = 'northing'
+    else:
+        pos_x = 'longitude'
+        pos_y = 'latitude'
+
+    if cmap_var is None:
+        # Try find speed
+        if 'speed' in rr.ds:
+            cmap_var = rr.ds['speed']
+        else:
+            cmap_var = np.sqrt(rr.ds.east_vel**2 + rr.ds.north_vel**2)
+    
+    fig_aspect = get_drifter_aspect(rr)
+    fig, ax = plt.subplots(1, 1, figsize=(size, size/fig_aspect))
+
+    sc = ax.scatter(rr.get_qaqc_var(pos_x),
+                    rr.get_qaqc_var(pos_y),
+                    c=cmap_var,
+                    s=1,
+                    cmap=cmap)
+    plt.colorbar(sc, ax=ax, label='Speed [m s$^{-1}$]', pad=0.01)
+    ax.set_aspect('equal')
+
+    ax.scatter(rr.ds[pos_x][rr.ds['qc_position']==1],\
+               rr.ds[pos_y][rr.ds['qc_position']==1],\
+               s=50, c='r', marker='x')
+    plt.grid()
+
+    if attrs is None:
+        attrs = ai.nonempty_attrs(rr)
+    title= ' | '.join([str(attrs[i]) for i in attrs])
+    title += ' | Flags=' + str(int(np.sum(rr.ds[qc_var]))) + '/' + str(len(rr.ds[qc_var]))
+    plt.title(title)
+
+    return fig, ax

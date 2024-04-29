@@ -314,4 +314,5 @@ def profiler_row_to_attrs(row):
 
 
 def nonempty_attrs(rr):
-    return {k: v for k, v in rr.ds.attrs.items() if v} 
+    md = {k: v for k, v in rr.ds.attrs.items() if v}
+    return {k: md[k] for k in md if not pd.isna(md[k])}
