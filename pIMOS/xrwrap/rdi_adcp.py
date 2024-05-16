@@ -22,6 +22,7 @@ from scipy.interpolate import interp1d
 from matplotlib.dates import num2date, date2num
 # import zutils.xrwrap as xrwrap
 import pIMOS.xrwrap.xrwrap as xrwrap
+import pIMOS.xrwrap.pimoswrap as pimoswrap
 
 # import zutils.time as ztime
 import afloat.time as ztime
@@ -265,7 +266,7 @@ def from_netcdf(infile):
 ##########################
 # Actual xarray wrap #####
 ##########################
-class RDI_ADCP_PD02(xrwrap.xrwrap):
+class RDI_ADCP_PD02(pimoswrap.pimoswrap):
 
     class_attrs = class_attrs
     
@@ -275,6 +276,9 @@ class RDI_ADCP_PD02(xrwrap.xrwrap):
         self.ds = ds # XRWRAP compatibility
 
         self.store_raw_file_attributes(ds)
+
+        # Set the class attributes
+        self.update_attributes_with_dict(class_attrs)
         
         self.enforce_these_attrs(class_attrs)
     

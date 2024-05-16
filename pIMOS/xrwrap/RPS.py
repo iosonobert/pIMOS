@@ -77,6 +77,8 @@ def from_nc(filename, trip=None, RPSvars=None, parse_times=True, verbose=True):
     return rr, ds, dsr
 
 
+
+
 class RPS(xrwrap.xrwrap):
     
     class_attrs = {

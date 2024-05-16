@@ -127,7 +127,7 @@ def get_pimos_catalogue(root_folder, is_moored=True):
     return pd.DataFrame(catalogue, columns=all_columns) 
 
 
-def filter_catalogue(cat, filters):
+def filter_catalogue(cat, filters, reverse=False):
     """
     Filters a catalogue based on a dictionary of filters.
 
@@ -148,11 +148,18 @@ def filter_catalogue(cat, filters):
     cat_f = cat.copy()
     for key, value in filters.items():
         if isinstance(value, list):
-            cat_f = cat_f[cat_f[key].isin(value)]
+            if reverse:
+                cat_f = cat_f[~cat_f[key].isin(value)]
+            else:
+                cat_f = cat_f[cat_f[key].isin(value)]
         else:
-            cat_f = cat_f[cat_f[key] == value]
+            if reverse:
+                cat_f = cat_f[cat_f[key] != value]
+            else:
+                cat_f = cat_f[cat_f[key] == value]
 
     return cat_f
+
 
 def load_detailed_data(cat_f):
     """
@@ -185,13 +192,13 @@ def load_detailed_data(cat_f):
     end_time = []
     for i, row in cat_f.iterrows():
 
-        if False: # this seems unnecessary
-            rr = pIMOS.load_pimos_nc(row['nc_path'])
-            ds = rr.ds
-            attrs = rr.attrs
-        else:
-            ds = xr.open_dataset(row['nc_path'])
-            attrs = ds.attrs
+        # if False: # this seems unnecessary
+        #     rr = pIMOS.load_pimos_nc(row['nc_path'])
+        #     ds = rr.ds
+        #     attrs = rr.attrs
+        # else:
+        ds = xr.open_dataset(row['nc_path'])
+        attrs = ds.attrs
 
         nominal_latitude.append(attrs['nominal_latitude'])
         nominal_longitude.append(attrs['nominal_longitude'])
@@ -206,3 +213,114 @@ def load_detailed_data(cat_f):
     cat_f['end_time']         = end_time
 
     return cat_f
+
+
+def get_var_bounds(catalogue, var):
+    """
+    Get the bounds of a variable in a catalogue.
+
+    Parameters
+    ----------
+    catalogue : pandas.DataFrame
+        The PIMOS catalogue DataFrame.
+    var : string
+        The variable to get the bounds of.
+
+    Returns
+    -------
+    tuple
+        A tuple containing the minimum and maximum values of the variable.
+    """
+    bounds_col = []
+    min_val = np.nan
+    max_val = np.nan
+    for i, row in catalogue.iterrows():
+        ds = xr.open_dataset(row['nc_path'])
+        if (var in ds.data_vars) | (var in ds.coords):
+            min_val = np.nanmin(ds[var].values)
+            max_val = np.nanmax(ds[var].values)
+        else:
+            if ('nominal_'+var) in ds.attrs:
+                min_val = np.nanmin(ds.attrs['nominal_'+var])
+                max_val = np.nanmax(ds.attrs['nominal_'+var])
+        bounds_col.append([min_val, max_val])
+    catalogue[(var + '_bounds')] = bounds_col
+    return catalogue
+
+
+def ds_check(catalogue, var, ds_key, strict=True, filter_name=None):
+    '''
+    Read coordinates from each row in the catalogue and return boolean mask for each row if coordinate exists
+    
+    Parameters
+    ----------
+    catalogue : pandas.DataFrame
+        The PIMOS catalogue DataFrame.
+    coord : string
+        The coordinate to filter by.
+    strict : bool, optional
+        If True, the function will return True if a partial match is found. E.g. 'vel' is in 'velocity'.
+    filter_name : string, optional
+        The name of the filter to add to the catalogue DataFrame.
+
+    Returns
+    -------
+    pandas.DataFrame
+        The updated PIMOS catalogue DataFrame with an additional column(s) for the filter.
+    '''
+
+    if filter_name is None:
+        filter_name = f'{var}_exists'
+
+    check_list = []
+
+    # Loop through each row in the catalogue
+    for i, row in catalogue.iterrows():
+
+        # Load the netCDF file
+        ds = xr.open_dataset(row['nc_path'])
+
+        if ds_key == 'coords':
+            variables = list(ds.coords)
+        elif ds_key == 'variables':
+            variables = list(ds.data_vars)
+        elif ds_key == 'attrs':
+            variables = list(ds.attrs)
+        else:
+            raise ValueError(f'Invalid ds_key: {ds_key}')
+
+        # Check if coordinate is in the dataset coords
+        check_list.append(dataset_key_check(variables, var, strict=strict))
+
+    catalogue[filter_name] = check_list
+    return catalogue
+
+
+
+def get_data_cube(catalogue, cube_bounds, columns=['latitude_bounds', 'longitude_bounds', 'time_bounds']):
+    '''
+    Get a data cube from the catalogue based on the bounds of the coordinates
+    '''
+    check_list = True
+    # Find if data is within the cube bounds
+    assert len(cube_bounds) == len(columns), 'Number of cube bounds must match number of columns'
+    for cub, col in zip(cube_bounds, columns):
+        # Check if the coordinate is within the bounds
+        check = (cub[0] <= catalogue[col].apply(lambda x: x[1])) & (cub[1] >= catalogue[col].apply(lambda x: x[0]))
+        check_list = check_list & check
+    return catalogue[check_list]
+
+
+def dataset_key_check(key_list, key, strict=True):
+
+    # Check if key is in the ist of keys
+    if strict:
+        if key in key_list:
+            return True
+        else:
+            return False
+    else:
+        if np.any([key in v for v in key_list]):
+            return [v for v in key_list if key in v]
+        else:
+            return ''
