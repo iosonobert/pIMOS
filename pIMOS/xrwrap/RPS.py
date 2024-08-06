@@ -1,7 +1,11 @@
 import os
+import xarray as xr
 import pIMOS.xrwrap.xrwrap as xrwrap
+
+import pIMOS.xrwrap.pimoswrap as pimoswrap
 from pIMOS.read import RPS as read_RPS
 import matplotlib.pyplot as plt
+from afloat.currents import sd_to_uv
 
 
 # Main read function
@@ -77,9 +81,17 @@ def from_nc(filename, trip=None, RPSvars=None, parse_times=True, verbose=True):
     return rr, ds, dsr
 
 
+# Low effort code to deal with metnet crap
+def rtcp_from_metnet(files, **kwargs):
+    return RPS(read_RPS.compile_raw_rtcp(files, **kwargs))
+
+# Low effort code to deal with metnet crap
+def wms_from_metnet(file):
+    return RPS(read_RPS.read_raw_wms(file))
 
 
-class RPS(xrwrap.xrwrap):
+
+class RPS(pimoswrap.pimoswrap):
     
     class_attrs = {
             'title': 'Measured data parsed from an RPS data file.',
@@ -97,6 +109,18 @@ class RPS(xrwrap.xrwrap):
         self.store_raw_file_attributes(ds)
         
         self.enforce_these_attrs(self.class_attrs)
+
+
+    def flag_emptybins(self):
+        ix = self.ds['speed'].std('time') == 0.0
+        self.ds = self.ds.drop_isel(distance=ix)
+        return self
+    
+    def convert_to_uv(self, convention='ocean', degrees=True, speedvar='speed', dirvar='direction'):
+        u, v = sd_to_uv(self.ds[speedvar], self.ds[dirvar], convention=convention, degrees=degrees)
+        self.ds['east_vel'] = u
+        self.ds['north_vel'] = v
+        return self
 
 
     def plot_RPS_export(self, plt_vars, labels='short'):

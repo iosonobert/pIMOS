@@ -6,6 +6,7 @@ import os
 import operator
 import xarray as xr
 import numpy as np 
+import pandas as pd
 from datetime import datetime, timedelta
 
 
@@ -16,8 +17,8 @@ RPSdefault = {
    'Pressure':'pressure',\
    'WaterDepth':'waterlevel',\
    'SensorDepth':'waterlevel',\
-   'CurEastComp':'water_u',\
-   'CurNorthComp':'water_v'}
+   'CurEastComp':'east_vel',\
+   'CurNorthComp':'north_vel'}
 
 RPScoords = {
    'Height':'nominal_instrument_height_asb',
@@ -136,7 +137,7 @@ def flag_rps_variable(ds, da, parse_times, verbose=True):
     """
     qgen = ''
     # Calculate the QC flag (old format)
-    if not parse_times:
+    if parse_times:
         qg = da.attrs['quality_group']
         Q1 = ds['Qual1'].values.astype(np.double)
         qgen = 'quality_group'
@@ -147,16 +148,30 @@ def flag_rps_variable(ds, da, parse_times, verbose=True):
     else:
         mask, qgen = calculate_qc_mask_new(ds, da, verbose=verbose)
 
-    if np.any(mask) & verbose:
+    if np.any(mask) & verbose & (qgen is not None):
         print('\t\tBad values found in ' + da.name + '... masking with ' + qgen + '!')
 
-    # Null the bad values
-    da[mask] = np.nan
-    return da
+    # return the mask
+    return mask, qgen
+
+def add_rps_variable(ds, dsr, time, varname, newname, verbose=True, parse_times=True):
+    qgen = None
+    if ('Qual' not in varname) & ('quality' not in varname):
+        if dsr[varname].size > 1:
+            V = convert_rps_variable(dsr, time, varname, newname, verbose)
+            mask, qgen = flag_rps_variable(dsr, V, parse_times, verbose)
+            ds.update({newname: V})
+            if qgen is not None:
+                qc_var = newname + '_qc'
+                qc_val = np.zeros(len(ds.time.values))
+                qc_val[mask] = 1
+                ds[qc_var] = xr.DataArray(qc_val, dims=('time',), name=qc_var)
+                ds[newname].attrs['qc_variable'] = qc_var
+    return ds, qgen
 
 
 # Basic read function
-def process_rps_file(filename, RPSvars=RPSdefault, parse_times=True, verbose=True):
+def process_rps_file(filename, RPSvars=RPSdefault, parse_times=True, verbose=True, convert_all=True):
     '''
     Basic read file for RPS, create a new dataset with pIMOS attributes
 
@@ -186,7 +201,7 @@ def process_rps_file(filename, RPSvars=RPSdefault, parse_times=True, verbose=Tru
     print('Processing file: %s'%filename)
 
     # Load the dataset
-    dsr = xr.open_dataset(filename, decode_times=parse_times)
+    dsr = xr.open_dataset(filename, decode_times=~parse_times)
 
     # Check for time variable
     if parse_times:
@@ -198,7 +213,7 @@ def process_rps_file(filename, RPSvars=RPSdefault, parse_times=True, verbose=Tru
                 raise(ValueError('No ''Time'' coordinate in file ' + filename))
 
     # Convert time (for old format)
-    if not parse_times:
+    if parse_times:
         time = convert_rps_time(dsr['Time'])
     else:
         time = dsr['Time'].values
@@ -212,11 +227,15 @@ def process_rps_file(filename, RPSvars=RPSdefault, parse_times=True, verbose=Tru
         print(varname)
         if varname in RPSvars.keys():
             newname = RPSvars[varname]
-            V = convert_rps_variable(dsr, time, varname, newname, verbose)
-            V = flag_rps_variable(dsr, V, parse_times, verbose)
-            ds.update({newname: V})
+            ds, qgen = add_rps_variable(ds, dsr, time, varname, newname, verbose=verbose, parse_times=parse_times)
         else:
-            non_vars.append(varname)
+            newname = varname
+            if convert_all:
+                ds, qgen = add_rps_variable(ds, dsr, time, varname, newname, verbose=verbose, parse_times=parse_times)
+                if qgen is None:
+                    non_vars.append(varname)
+            else:
+                non_vars.append(varname)
 
     # Put key attributes in file
     for attr in RPScoords.keys():
@@ -278,3 +297,98 @@ def get_RPS_summary(nc):
     subdict['location'] = nc.attrs['location']
     return subdict
 
+
+
+
+#######################
+# Metnet functions (crap)
+#######################
+
+def load_rtcp_data(fullpath, keep='Current'):
+    df = pd.read_csv(fullpath, skiprows=2, parse_dates=True, index_col=0)
+    if 'Time' in df.columns:
+        df = df.drop(columns='Time')
+    # Drop any columns that dont contain 'current'
+    df = df.loc[:, df.columns.str.contains(keep)]
+    df.index = pd.to_datetime(df.index)
+    return df.sort_index()
+
+def get_RTCP_distance(df):
+    dcol = df.columns.to_list()
+    dcolxx = dcol[0].find('Bin') + 3
+    bins = [int(d[dcolxx:dcolxx+2]) for d in dcol]
+    return 4.25 + 2*np.array(bins)
+
+def rtcp_da(df, distance, name=None): 
+    return xr.DataArray(df.values, coords=[df.index, distance], dims=['time', 'distance'], name=name)
+
+def rtcp_read_halfvar(file, varname):
+    da = load_rtcp_data(file)
+    dist = get_RTCP_distance(da)
+    return rtcp_da(da, dist, varname)
+
+def compile_raw_rtcp(files, dir=[0,1], spd=[2,3], temp=3, pos=4, surface=5):
+    da_dir1 = rtcp_read_halfvar(files[dir[0]], 'current_dir')
+    da_dir2 = rtcp_read_halfvar(files[dir[1]], 'current_dir')
+
+    da_spd1 = rtcp_read_halfvar(files[spd[0]], 'current_spd')
+    da_spd2 = rtcp_read_halfvar(files[spd[1]], 'current_spd')
+
+    da_dir = xr.concat([da_dir1, da_dir2], dim='distance')
+    da_dir.attrs['units'] = 'degree N'
+
+    da_spd = xr.concat([da_spd1, da_spd2], dim='distance')
+    da_spd.attrs['units'] = 'm s$^{-1}$'
+
+    ds = xr.Dataset({'direction': da_dir, 'speed': da_spd})
+    
+    # Add seperate temp data
+    df_temp = load_rtcp_data(files[temp], keep='Temp')
+    ds['temperature'] = xr.DataArray(df_temp.values.flatten(), coords=[df_temp.index], dims=['time'], name='temperature')
+
+    # Add the position data
+    df_pos = load_rtcp_data(files[pos], keep='deg')
+    latitude = xr.DataArray(df_pos['Buoy_Latitude/deg'], coords=[df_pos.index], dims=['time'], name='latitude')
+    longitude = xr.DataArray(df_pos['Buoy_Longitude/deg'], coords=[df_pos.index], dims=['time'], name='longitude')
+
+    latitude[latitude == 0.0] = np.nan
+    longitude[longitude == 0.0] = np.nan
+
+    ds['latitude'] = latitude.interp_like(ds['speed'])
+    ds['longitude'] = longitude.interp_like(ds['speed'])
+
+    # Add the surface CM-04
+    df_surf = load_rtcp_data(files[surface], keep='Surface')
+    # only add variables where index overlaps with ds
+    df_surf = df_surf.loc[df_surf.index.intersection(df_temp.index)]
+    ds['current_dir_surface'] = xr.DataArray(df_surf['Total_CurrentDirection/Surface_deg_Mean'],\
+                                     coords=[df_surf.index], dims=['time'], name='current_dir_surface')    
+    ds['current_speed_surface'] = xr.DataArray(df_surf['Total_CurrentSpeed/Surface_mps_Mean'],\
+                                     coords=[df_surf.index], dims=['time'], name='current_speed_surface')     
+    return ds
+
+
+def read_raw_wms(file, cols=[0,1,2,3,8,9,10], colnames=None, skiprows=2,\
+                 latbounds=[-13.85,-13.80], lonbounds=[123.27,123.29]):
+
+    if colnames is None:
+        colnames = ['time', 'latitude', 'longitude', 'up_vel', 'direction', 'speed', 'temperature']
+
+    df = pd.read_csv(file, skiprows=skiprows)
+    df = df.iloc[:,cols]
+
+    df.columns = colnames
+
+    # Remove some bad data by bounds
+    ix = ((df['latitude'] > latbounds[0]) & (df['latitude'] < latbounds[1])) &\
+         ((df['longitude'] > lonbounds[0]) & (df['longitude'] < lonbounds[1]))
+    df = df.loc[ix]
+
+    # Reindex to time & convert to numpy datetime64
+    df.set_index('time', inplace=True)
+    df.index = pd.to_datetime(df.index)
+
+    # Convert to dataset
+    ds = df.to_xarray()
+
+    return ds

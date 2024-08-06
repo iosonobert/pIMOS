@@ -125,7 +125,7 @@ def plot_echo(rr, db_data, mooring, attributes, variable='echo', width=65,\
 
 
 def plot_temp(rr, db_data, mooring, attributes, variable='Temperature',\
-              plotraw=True, width=65, experiment=None, recovered=None):
+              plotraw=True, width=65, experiment=None, recovered=None, transpose=False):
     
     if experiment is None:
         try:
@@ -147,9 +147,12 @@ def plot_temp(rr, db_data, mooring, attributes, variable='Temperature',\
 
     zl.lay(0, 0)
 
+    # Plotting
+    data = rr.ds[variable].T if transpose else rr.ds[variable]
+    qaqc_data = rr.get_qaqc_var(variable).T if transpose else rr.get_qaqc_var(variable)
     if plotraw:
-        rr.ds[variable].plot(label='Raw')
-    rr.get_qaqc_var(variable).plot(label='QAQC')
+        data.plot(label='Raw')
+    qaqc_data.plot(label='QAQC')
 
     plt.xlim(rr.ds.time.values[[0, -1]])
     if plotraw:
@@ -161,7 +164,10 @@ def plot_temp(rr, db_data, mooring, attributes, variable='Temperature',\
     plt.title(title)
     
     if not rr.attrs['is_profile_data']:
-        add_mooring_dates(db_data, mooring, plt.gca(), experiment=experiment, recovered=recovered)
+        if db_data is not None:
+            add_mooring_dates(db_data, mooring, plt.gca(), experiment=experiment, recovered=recovered)
+        else:
+            print('No mooring dates available')
     plt.show()
     
     return fig
