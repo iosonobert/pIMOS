@@ -43,12 +43,24 @@ def pimosImpossibleDateQC():
 def pimosImpossibleLocationSetQC():
     raise(NotImplementedError)
 
-def pimosInOutWaterQC(rr, mooring, db_data, year_1=1990, year_n=2200, delete_raw=False, experiment='kissme', recovered='kissme_recovery'):
+def pimosInOutWaterQC(rr, mooring, db_data, year_1=1990, year_n=2200, delete_raw=False, experiment=None, recovered=None):
     """
     This differs somewhat from IMOS. It takes a mooring table with mooring in/out dates and QCs accordingly. 
 
     THIS SHOULD NOT BE THE CASE IT SHOULD BE INDEPENDENT OF THE DATA TABLES. 
     """
+    # Get experiment and recovery from the attributes
+    if experiment is None:
+        try:
+            experiment = rr.attrs['project']
+        except:
+            Exception("Please supply an experiment.")
+    
+    if recovered is None:
+        try:
+            recovered = rr.attrs['trip']
+        except:
+            Exception("Please supply a recovery trip name.")
     
     df = db_data['possible_mooring_dates']
     
@@ -125,6 +137,66 @@ def pimosImpossibleDepthQC():
     mismatch between nominal and actual depth when deployed, and knock down events related to strong current events.
     """
     raise(NotImplementedError)
+
+def pimosImpossibleValueQC(rr, varnames, thresholds, direction='over', verbose=True):
+    """
+    imosImpossibleValueQC checks that the values of a parameter are within a reasonable range. 
+    This test is available at one's discretion who is fully aware of the algorithm and flags used.
+
+    Parameters
+    ----------
+    varnames : str or list
+        Variable name or List of variable names to check
+    thresholds : str or list
+        Threshold or List of thresholds.
+    direction : str or list, optional
+        'over' or 'under' or 'abs' (default is 'over')
+    verbose : bool, optional
+        Print out the thresholds (default is True)
+    """
+    if type(varnames) is str:
+        varnames = [varnames]
+        assert (type(thresholds) is int) or (type(thresholds) is float)
+        thresholds = [thresholds]
+        assert (type(direction) is str)
+        direction = [direction]
+    else:
+        if (type(thresholds) is int) or (type(thresholds) is float):
+            thresholds = [thresholds]*len(varnames)
+        if (type(direction) is str):
+            direction = [direction]*len(varnames)
+    
+    assert len(varnames) == len(thresholds)
+    assert len(varnames) == len(direction)
+
+    for i in range(len(varnames)):
+        varname = varnames[i]
+        threshold = thresholds[i]
+        direc = direction[i]
+
+        if verbose:
+            print('Variable: {}'.format(varname))
+            print('Threshold: {}'.format(threshold))
+            print('Direction: {}'.format(dir))
+
+        if direc == 'over':
+            logical_index = rr.ds[varname] > threshold
+        elif direc == 'under':
+            logical_index = rr.ds[varname] < threshold
+        elif direc == 'abs':
+            logical_index = np.abs(rr.ds[varname]) > threshold
+        else:
+            raise(Exception("Direction must be 'over', 'under' or 'abs'"))
+
+        rr.update_qc_flag_logical(varname, 
+                                'time', 
+                                logical_index, 
+                                1,
+                                'pimosImpossibleValueQC threshold: {}'.format(threshold))
+
+    
+    
+
 
 def pimosVerticalSpikeQC():
     """

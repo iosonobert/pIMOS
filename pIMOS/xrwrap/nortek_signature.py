@@ -413,14 +413,16 @@ class NORTEK_SIGNATURE(pimoswrap.pimoswrap):
     
     class_attrs = class_attrs 
 
-    def __init__(self, ds):
-        
-        print('Initialising accessor.')
+    def __init__(self, ds, verbose=True):
+        self.verbose = verbose
+
+        if self.verbose:
+            print('Initialising accessor.')  
         self.ds = ds # XRWRAP compatibility
 
         self.store_raw_file_attributes(ds)
-
-        self.enforce_these_attrs(self.class_attrs)
+        self.update_attributes_with_dict(class_attrs)
+        self.enforce_these_attrs(class_attrs)
         
     # def export(self, final=False, final_folder=None, csv=True):
     #     """

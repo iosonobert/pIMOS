@@ -203,38 +203,44 @@ def from_pdo(filename, rotate=False, mapbins=False, verbose=False):
     return rr, ds
 
 
-def from_pdo_dolfynxr(filename, rotate=False, mapbins=False, verbose=False):
+def from_pdo_dolfynxr(filename, rotate=False, mapbins=False, verbose=False, ship=False):
     """
     Read PD0 file with Dolfyn v1.XX. 
     """
     
     # Load the raw binary data
-    ds = rdi.read_rdi(filename) # This would be Levi Kilcher's dat object
+    dsr = rdi.read_rdi(filename) # This would be Levi Kilcher's dat object
+    ds = dsr.copy()
     
     if verbose:
-        print(ds)
+        print(dsr)
 
     ds.attrs['raw_file_name']      = os.path.split(filename)[1]
     ds.attrs['raw_file_directory'] = os.path.split(filename)[0]
 
-    ds=ds.rename({'vel':'beamvel'})
     ds=ds.rename({'range':'distance'})
+    if ship:
+        ds['vel'] = ds['vel'] - ds['vel_bt'].transpose('dir','time')
+    else:
+        ds=ds.rename({'vel':'beamvel'})
+        ds['beamvel'] = ds.beamvel.swap_dims({'dir': 'beam'})\
+            .transpose('distance', 'time', 'beam')
     ds=ds.rename({'prcnt_gd':'percent_good'})
     ds=ds.rename({'temp':'temperature'})
     ds=ds.rename({'amp':'echo'})
 
-    ds['beamvel'] = ds.beamvel.swap_dims({'dir': 'beam'})\
-        .transpose('distance', 'time', 'beam')
     ds['percent_good'] = ds.percent_good.transpose('distance', 'time', 'beam')
     ds['echo'] = ds.echo.transpose('distance', 'time', 'beam')
     ds['corr'] = ds.corr.transpose('distance', 'time', 'beam')
+
 
     rr = RDI_ADCP_PD02(ds)
 
     #############################
     ## Higher Process level stuff
     #############################
-    rr.associate_qc_flag('beamvel', 'velocity3')
+    if not ship:
+        rr.associate_qc_flag('beamvel', 'velocity3')
 
     #############################################
     # Rotate raw data, mapping if necessary #####
@@ -249,7 +255,7 @@ def from_pdo_dolfynxr(filename, rotate=False, mapbins=False, verbose=False):
     # 'DELETED THE ENCODING FROM MATT RAYSONs CODE. QUESTION FOR HIM.'
     # self.ds, self.encoding = self._to_xray(self._data)
 
-    return rr, ds
+    return rr, ds, dsr
 
 
 def from_netcdf(infile):
@@ -270,16 +276,15 @@ class RDI_ADCP_PD02(pimoswrap.pimoswrap):
 
     class_attrs = class_attrs
     
-    def __init__(self, ds):
-        
-        print('Initialising accessor.')
+    def __init__(self, ds, verbose=True):
+        self.verbose = verbose
+
+        if self.verbose:
+            print('Initialising accessor.')  
         self.ds = ds # XRWRAP compatibility
 
         self.store_raw_file_attributes(ds)
-
-        # Set the class attributes
         self.update_attributes_with_dict(class_attrs)
-        
         self.enforce_these_attrs(class_attrs)
     
     #######
@@ -345,21 +350,21 @@ class RDI_ADCP_PD02(pimoswrap.pimoswrap):
         }
 
         adcp_vars_rotation = {
-                'u':
+                'east_vel':
                     {'data':u,
                     'attrs':{'long_name':'Eastward water velocity',
                 'coordinates':'time distance',
                         'units':'m/s'},
                     'dims':('distance','time')
                     },
-                'v':
+                'north_vel':
                     {'data':v,
                     'attrs':{'long_name':'Northward water velocity',
                 'coordinates':'time distance',
                         'units':'m/s'},
                     'dims':('distance','time')
                     },
-                'w':
+                'up_vel':
                     {'data':w,
                     'attrs':{'long_name':'Vertical water velocity',
                 'coordinates':'time distance',
@@ -428,9 +433,9 @@ class RDI_ADCP_PD02(pimoswrap.pimoswrap):
         self.ds.attrs = attrs
         # self.encoding = encoding
 
-        self.associate_qc_flag('u', 'velocity')
-        self.associate_qc_flag('v', 'velocity')
-        self.associate_qc_flag('w', 'velocity')
+        self.associate_qc_flag('east_vel', 'velocity')
+        self.associate_qc_flag('north_vel', 'velocity')
+        self.associate_qc_flag('up_vel', 'velocity')
         self.associate_qc_flag('uinst', 'velocity')
         self.associate_qc_flag('vinst', 'velocity')
         self.associate_qc_flag('winst', 'velocity')
@@ -483,7 +488,7 @@ class RDI_ADCP_PD02(pimoswrap.pimoswrap):
 
         ds.update({'zhat':zda})
 
-    def _calc_sidelobe_trim(self, P='pressure', trim=10, trim_units='%', variables=['u', 'v', 'w', 'uinst', 'vinst', 'winst']):
+    def _calc_sidelobe_trim(self, P='pressure', trim=10, trim_units='%', variables=['east_vel', 'north_vel', 'up_vel', 'uinst', 'vinst', 'winst']):
 
         rdi_adcp_utils.sidelobe_trim(self, trim=trim, trim_units=trim_units, P=P, variables=variables)
         

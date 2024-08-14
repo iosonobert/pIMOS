@@ -16,9 +16,15 @@ RPSdefault = {
    'Salinity':'salinity',\
    'Pressure':'pressure',\
    'WaterDepth':'waterlevel',\
+   'WaterDepth1':'waterlevel',\
    'SensorDepth':'waterlevel',\
    'CurEastComp':'east_vel',\
-   'CurNorthComp':'north_vel'}
+   'CurNorthComp':'north_vel',\
+   'water_u':'east_vel',\
+   'water_v': 'north_vel',\
+   'water_w': 'up_vel',\
+   'CurSpd': 'current_speed',\
+   'CurDirn':'current_direction'}
 
 RPScoords = {
    'Height':'nominal_instrument_height_asb',
@@ -27,6 +33,19 @@ RPScoords = {
    'Longitude':'nominal_longitude',
    'Latitude':'nominal_latitude',\
 }
+
+
+current_vars = {
+   'SeaWaterTemp':'temperature',\
+   'SeaWaterTemp1':'temperature',\
+   'CurEastComp':'water_u',\
+   'CurNorthComp':'water_v'}
+
+alt_vars = {
+   'SeaWaterTemp':'temperature',\
+   'SeaWaterTemp1':'temperature',\
+   'CurSpd':'water_vel',\
+   'CurDirn':'water_dir'}
 
 
 ############
@@ -204,13 +223,9 @@ def process_rps_file(filename, RPSvars=RPSdefault, parse_times=True, verbose=Tru
     dsr = xr.open_dataset(filename, decode_times=~parse_times)
 
     # Check for time variable
-    if parse_times:
-        if 'Time' not in dsr.coords.keys():
-            raise(ValueError('No ''Time'' coordinate in file ' + filename))
-    else:
+    if 'Time' not in dsr.coords.keys():
         if 'Time' not in dsr.data_vars.keys():
-            if 'Time' not in dsr.coords.keys():
-                raise(ValueError('No ''Time'' coordinate in file ' + filename))
+            raise(ValueError('No ''Time'' coordinate in file ' + filename))
 
     # Convert time (for old format)
     if parse_times:
@@ -224,18 +239,20 @@ def process_rps_file(filename, RPSvars=RPSdefault, parse_times=True, verbose=Tru
     # Convert the data variables and insert them into the output object
     non_vars = []
     for varname in dsr.data_vars.keys():
-        print(varname)
-        if varname in RPSvars.keys():
-            newname = RPSvars[varname]
-            ds, qgen = add_rps_variable(ds, dsr, time, varname, newname, verbose=verbose, parse_times=parse_times)
-        else:
-            newname = varname
-            if convert_all:
+        if varname != 'Time':
+            print(varname)
+            if varname in RPSvars.keys():
+                newname = RPSvars[varname]
                 ds, qgen = add_rps_variable(ds, dsr, time, varname, newname, verbose=verbose, parse_times=parse_times)
-                if qgen is None:
-                    non_vars.append(varname)
             else:
-                non_vars.append(varname)
+                newname = varname
+                if convert_all:
+                    print(dsr[varname])
+                    ds, qgen = add_rps_variable(ds, dsr, time, varname, newname, verbose=verbose, parse_times=parse_times)
+                    if qgen is None:
+                        non_vars.append(varname)
+                else:
+                    non_vars.append(varname)
 
     # Put key attributes in file
     for attr in RPScoords.keys():

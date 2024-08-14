@@ -349,6 +349,12 @@ class xrwrap():
 
         print('Trimmed Time')
 
+
+    def time_trim_index(self, index):
+        self.ds = self.ds.isel(time=index)
+        print('Trimmed Time')
+
+
     @property  
     def is_profile_data(self):
         
@@ -402,7 +408,7 @@ class xrwrap():
             # if not create the flag
             flag_array = self.ds[var_name].copy()
             flag_array.attrs={}
-            flag_array.values[:] = -999
+            flag_array.values[:] = 0
             self.ds[flag_name] = flag_array
 
             # flag = -999*np.ones_like(self.ds[var_name])
@@ -654,7 +660,7 @@ class xrwrap():
 
         self.update_qc_flag_dict(flag_name, index_dict, flag_value, comment=comment, delete_raw=delete_raw, verbose=verbose)
 
-    def update_qc_flag_logical(self, flag_name, index_name, logical_index, flag_value, comment=None, delete_raw=False, verbose=False):
+    def update_qc_flag_logical(self, flag_name, index_name, logical_index, flag_value, comment=None, delete_raw=False, verbose=None):
         """
         This is a base function to update a QAQC flag. Inputs:
             - flag_name: The name of the netcdf variable corrsponding to the QC flag being edited. Can be:
@@ -668,6 +674,8 @@ class xrwrap():
             - logical_index: Logical index for points to change the value of
             - flag_value: new value which the QC flag is to become wherever the index is between start and end 
         """
+        if verbose is None:
+            verbose = self.verbose
 
         if delete_raw:
             error
@@ -691,7 +699,7 @@ class xrwrap():
             ind = np.where(logical_index)[0]
             logind = self.ds[flag_name] > 0
 
-            if self.verbose:
+            if verbose:
                 print()
 
             if not comment is None: # Log comment on the QAQC.
@@ -700,7 +708,7 @@ class xrwrap():
                     
                 self.add_comment(self.default_user, string, data_var=flag_name)
 
-            if self.verbose:
+            if verbose:
                 print(ind)
                 print(len(ind))
 
@@ -974,6 +982,8 @@ class xrwrap():
             if self.attrs[attr] == '':
                 self.update_attribute(attr, enforced_attributes[attr])
             else:
+                print(self.attrs[attr])
+                print(enforced_attributes[attr])
                 assert(self.attrs[attr]==enforced_attributes[attr])  
 
     def check_attrs(self):

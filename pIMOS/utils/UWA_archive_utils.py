@@ -242,7 +242,7 @@ def pIMOS_get_my_export_folder(rr, archive_dir):
     
 #     rr.export( naming_method='convention', export_directory=folder)
 
-def pIMOS_export(rr, archive_dir, file_append=''):
+def pIMOS_export(rr, archive_dir):
 
     folder = pIMOS_get_my_export_folder(rr, archive_dir)
     print(folder)

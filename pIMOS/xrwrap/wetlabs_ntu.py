@@ -19,6 +19,7 @@ import importlib
 
 # import zutils.xrwrap as xrwrap
 import pIMOS.xrwrap.xrwrap as xrwrap
+import pIMOS.xrwrap.pimoswrap as pimoswrap
 import pIMOS.utils.file as zfile
 
 
@@ -78,17 +79,19 @@ def from_netcdf(infile):
 ##########################
 # Actual xarray wrap #####
 ##########################
-class WETLABS_NTU(xrwrap.xrwrap):
+class WETLABS_NTU(pimoswrap.pimoswrap):
 
     class_attrs = class_attrs
     
-    def __init__(self, ds):
-        
-        print('Initialising accessor.')
+    def __init__(self, ds, verbose=True):
+        self.verbose = verbose
+
+        if self.verbose:
+            print('Initialising accessor.')
         self.ds = ds # XRWRAP compatibility
 
         self.store_raw_file_attributes(ds)
-
+        self.update_attributes_with_dict(class_attrs)
         self.enforce_these_attrs(class_attrs)
         
     def _calibrate_device(self, device_file):
@@ -109,16 +112,16 @@ class WETLABS_NTU(xrwrap.xrwrap):
             for key in calibration_data.keys():
                 print('     ' + key)
 
-            if 'Turbidity' in calibration_data.keys():
-                SF = calibration_data['Turbidity']['SF'] 
-                DC = calibration_data['Turbidity']['DC']
-                column = int(calibration_data['Turbidity']['dev_file_column'] - 2)
+            if 'turbidity' in calibration_data.keys():
+                SF = calibration_data['turbidity']['SF'] 
+                DC = calibration_data['turbidity']['DC']
+                column = int(calibration_data['turbidity']['dev_file_column'] - 2)
                 self._calibrate_turbidity(SF, DC, column)
 
-            if 'Chlorophyll' in calibration_data.keys():
-                SF = calibration_data['Chlorophyll']['SF'] 
-                DC = calibration_data['Chlorophyll']['DC']
-                column = int(calibration_data['Chlorophyll']['dev_file_column'] - 2)
+            if 'chlorophyll' in calibration_data.keys():
+                SF = calibration_data['chlorophyll']['SF'] 
+                DC = calibration_data['chlorophyll']['DC']
+                column = int(calibration_data['chlorophyll']['dev_file_column'] - 2)
                 self._calibrate_chlorophyll(SF, DC, column)
         
             print('Device file calibration complete.')
@@ -159,6 +162,24 @@ class WETLABS_NTU(xrwrap.xrwrap):
         ds[param_name].attrs['units'] = param_units
         ds[param_name].attrs['long_name'] = param_long_name
         ds[param_name].attrs['standard_name'] = param_long_name
+
+    
+    def flag_maxvalues(self, varname, devfile, tolerance=0.015, max_counts=4130, verbose=None):
+        if verbose is None:
+            verbose = self.verbose
+
+        unit, model, serial, date_created, calibration_data = parse_device_file(devfile)
+
+        SF = calibration_data[varname]['SF']
+        var_max = max_counts * SF
+
+        # Check for max values
+        max_flag = self.ds[varname] >= var_max * (1 - tolerance)
+        print(np.sum(max_flag.values))
+
+        # Update QC flag
+        self.update_qc_flag_logical(self.ds[varname].attrs['qc_variable'], 'time', max_flag, 1, verbose=False)
+
         
     def _calc_burst_mean(self, parameter='turbidity', cutoff=None):
         
@@ -274,10 +295,10 @@ def _parse_device_file(dev_file, verbose=False):
             continue
 
         elif param == 'chl':
-            calibration_data['Chlorophyll'] = {'SF': float(words[1]), 'DC':int(words[2]), 'dev_file_column':int(i+1)}
+            calibration_data['chlorophyll'] = {'SF': float(words[1]), 'DC':int(words[2]), 'dev_file_column':int(i+1)}
 
         elif param == 'ntu':
-            calibration_data['Turbidity'] = {'SF': float(words[1]), 'DC':int(words[2]), 'dev_file_column': int(i+1)}
+            calibration_data['turbidity'] = {'SF': float(words[1]), 'DC':int(words[2]), 'dev_file_column': int(i+1)}
             
         else:
             raise(DeviceFileFormatError('Unrecognised parameter "{}"'.format(param)))

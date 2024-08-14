@@ -48,11 +48,14 @@ def get_pimos_catalogue(root_folder, is_moored=True):
 
     pimos_folder = os.path.join(root_folder, version_subfolder)
 
-    assert os.path.exists(pimos_folder), f'Folder {pimos_folder} does not exist'
+    # This assert fails for * paths - updating to glob
+    # assert os.path.exists(pimos_folder), f'Folder {pimos_folder} does not exist'
+    try_folders = glob.glob(pimos_folder)
+    assert len(try_folders)>0, f'Folder {pimos_folder} does not exist'
 
     print(f'.... {version_subfolder} found')
 
-    folders = glob.glob(pimos_folder+'/*')
+    folders = glob.glob(os.path.join(pimos_folder, '*'))
     fvfolders = os.listdir(pimos_folder)
 
     default_row = np.array(['N/A']*8).astype('<U30')
@@ -87,7 +90,7 @@ def get_pimos_catalogue(root_folder, is_moored=True):
             # print(groupfolder)
             groupfolderpath = os.path.join(fvpath, groupfolder)
             
-            nc_paths = glob.glob(groupfolderpath+'/*.nc')
+            nc_paths = glob.glob(os.path.join(groupfolderpath, '*.nc'))
             # nc_paths = os.listdir(groupfolderpath)
             # print(nc_paths)
             for nc_path in nc_paths:
@@ -190,6 +193,8 @@ def load_detailed_data(cat_f):
     nominal_longitude = []
     start_time = []
     end_time = []
+    z_nom = []
+
     for i, row in cat_f.iterrows():
 
         # if False: # this seems unnecessary
@@ -197,22 +202,79 @@ def load_detailed_data(cat_f):
         #     ds = rr.ds
         #     attrs = rr.attrs
         # else:
-        ds = xr.open_dataset(row['nc_path'])
-        attrs = ds.attrs
+        try:
+            ds = xr.open_dataset(row['nc_path'])
+            load = True
+        except:
+            print(f'Failed to load {row["nc_path"]}')
+            nominal_latitude.append(np.nan)
+            nominal_longitude.append(np.nan)
+            start_time.append(np.datetime64('NaT'))
+            end_time.append(np.datetime64('NaT'))
+            z_nom.append(np.nan)
+            load = False
 
-        nominal_latitude.append(attrs['nominal_latitude'])
-        nominal_longitude.append(attrs['nominal_longitude'])
+        if load:
+            attrs = ds.attrs
 
-        start_time.append(ds.time.values[0])
-        end_time.append(ds.time.values[-1])
+            nominal_latitude.append(attrs['nominal_latitude'])
+            nominal_longitude.append(attrs['nominal_longitude'])
 
+            start_time.append(ds.time.values[0])
+            end_time.append(ds.time.values[-1])
 
-    cat_f['nominal_latitude'] = nominal_latitude
+            try:
+                z_nom.append(np.squeeze(ds['z_nom'].values))
+            except:
+                z_nom.append(np.nan)
+
+    cat_f['nominal_latitude']  = nominal_latitude
     cat_f['nominal_longitude'] = nominal_longitude
-    cat_f['start_time']       = start_time
-    cat_f['end_time']         = end_time
+    cat_f['start_time']        = start_time
+    cat_f['end_time']          = end_time
+    cat_f['z_nom']             = z_nom
 
     return cat_f
+
+
+def get_attributes(catalogue, attrs):
+    """
+    Get the values of attributes in a catalogue.
+
+    Parameters
+    ----------
+    catalogue : pandas.DataFrame
+        The PIMOS catalogue DataFrame.
+    attrs : list
+        A list of attributes to get the values of.
+
+    Returns
+    -------
+    pandas.DataFrame
+        The updated PIMOS catalogue DataFrame with additional columns for each attribute.
+    """
+
+    for attr in attrs:
+        attr_col = []
+        for i, row in catalogue.iterrows():
+            try:
+                ds = xr.open_dataset(row['nc_path'])
+                load = True
+            except:
+                print(f'Failed to load {row["nc_path"]}')
+                load = False
+
+            if load:
+                if attr in ds.attrs:
+                    attr_col.append(ds.attrs[attr])
+                else:
+                    attr_col.append('')
+            else:
+                attr_col.append(np.nan)
+
+        catalogue[attr] = attr_col
+
+    return catalogue
 
 
 def get_var_bounds(catalogue, var):
@@ -235,15 +297,25 @@ def get_var_bounds(catalogue, var):
     min_val = np.nan
     max_val = np.nan
     for i, row in catalogue.iterrows():
-        ds = xr.open_dataset(row['nc_path'])
-        if (var in ds.data_vars) | (var in ds.coords):
-            min_val = np.nanmin(ds[var].values)
-            max_val = np.nanmax(ds[var].values)
+        try:
+            ds = xr.open_dataset(row['nc_path'])
+            load = True
+        except:
+            print(f'Failed to load {row["nc_path"]}')
+            load = False
+
+        if load:
+            if (var in ds.data_vars) | (var in ds.coords):
+                min_val = np.nanmin(ds[var].values)
+                max_val = np.nanmax(ds[var].values)
+            else:
+                if ('nominal_'+var) in ds.attrs:
+                    min_val = np.nanmin(ds.attrs['nominal_'+var])
+                    max_val = np.nanmax(ds.attrs['nominal_'+var])
+            bounds_col.append([min_val, max_val])
         else:
-            if ('nominal_'+var) in ds.attrs:
-                min_val = np.nanmin(ds.attrs['nominal_'+var])
-                max_val = np.nanmax(ds.attrs['nominal_'+var])
-        bounds_col.append([min_val, max_val])
+            bounds_col.append([np.nan, np.nan])
+
     catalogue[(var + '_bounds')] = bounds_col
     return catalogue
 
@@ -278,7 +350,11 @@ def ds_check(catalogue, var, ds_key, strict=True, filter_name=None):
     for i, row in catalogue.iterrows():
 
         # Load the netCDF file
-        ds = xr.open_dataset(row['nc_path'])
+        try:
+            ds = xr.open_dataset(row['nc_path'])
+        except:
+            print(f'Failed to load {row["nc_path"]}')
+            pass
 
         if ds_key == 'coords':
             variables = list(ds.coords)
@@ -296,6 +372,21 @@ def ds_check(catalogue, var, ds_key, strict=True, filter_name=None):
     return catalogue
 
 
+def get_distance_bounds(catalogue):
+    """
+    Get the distance bounds of the instruments in the catalogue (for ADCPs)
+    """
+    for i, row in catalogue.iterrows():
+        if row['nominal_instrument_orientation'] == 'up':
+            catalogue.at[i, 'distance_bounds'] =  catalogue.at[i, 'z_nom'] +\
+                                                    catalogue.at[i, 'distance_bounds']
+        elif row['nominal_instrument_orientation'] == 'down':
+            catalogue.at[i, 'distance_bounds'] =  catalogue.at[i, 'z_nom'] -\
+                                                    catalogue.at[i, 'distance_bounds']
+        else:
+            catalogue.at[i, 'distance_bounds'] = [np.nan, np.nan]
+    return catalogue
+
 
 def get_data_cube(catalogue, cube_bounds, columns=['latitude_bounds', 'longitude_bounds', 'time_bounds']):
     '''
@@ -306,7 +397,12 @@ def get_data_cube(catalogue, cube_bounds, columns=['latitude_bounds', 'longitude
     assert len(cube_bounds) == len(columns), 'Number of cube bounds must match number of columns'
     for cub, col in zip(cube_bounds, columns):
         # Check if the coordinate is within the bounds
-        check = (cub[0] <= catalogue[col].apply(lambda x: x[1])) & (cub[1] >= catalogue[col].apply(lambda x: x[0]))
+        if type(catalogue[col].values[0]) == np.float64:
+            check = (cub[0] <= catalogue[col].apply(lambda x: x)) & (cub[1] >= catalogue[col].apply(lambda x: x))
+        elif type(catalogue[col].values[0]) == list:
+            check = (cub[0] <= catalogue[col].apply(lambda x: x[1])) & (cub[1] >= catalogue[col].apply(lambda x: x[0]))
+        else:
+            raise ValueError(f'Invalid type for {col}')
         check_list = check_list & check
     return catalogue[check_list]
 

@@ -88,13 +88,15 @@ class SEABIRD_37_39_56(pimoswrap.pimoswrap):
 
     class_attrs = class_attrs
     
-    def __init__(self, ds):
-        
-        print('Initialising accessor.')
+    def __init__(self, ds, verbose=True):
+        self.verbose = verbose
+
+        if self.verbose:
+            print('Initialising accessor.')        
         self.ds = ds # XRWRAP compatibility
 
         self.store_raw_file_attributes(ds)
-
+        self.update_attributes_with_dict(class_attrs)
         self.enforce_these_attrs(class_attrs)
 
 

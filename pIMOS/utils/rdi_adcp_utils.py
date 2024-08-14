@@ -16,6 +16,13 @@ from matplotlib.dates import num2date, date2num
 
 import pdb
 
+try:
+    from d2spike.despike_GN import qc0_Flags
+    from d2spike.despike import D2spikearray
+except:
+    print('d2spike not available')
+    pass
+
 deg2rad = np.pi / 180.
 rad2deg = 180./np.pi
 
@@ -76,12 +83,11 @@ def resample_uvw(self, dtavg, raw=False, rotate=False, othervars=[]):
                     ds.attrs['orientation'],\
                     ds.attrs['coord_sys'],)
 
-            dsnew.update({'u':u, 'v':v, 'w':w,'errvel':evel})
-            
+            dsnew.update({'east_vel':u, 'north_vel':v, 'up_vel':w,'errvel':evel})
     else:
-        dsnew.update({'v' : resample( ds['v'], dtavg, axis=1) })
-        dsnew.update({'u' : resample( ds['u'], dtavg, axis=1) })
-        dsnew.update({'w' : resample( ds['w'], dtavg, axis=1) })
+        dsnew.update({'north_vel' : resample( ds['north_vel'], dtavg, axis=1) })
+        dsnew.update({'east_vel' : resample( ds['east_vel'], dtavg, axis=1) })
+        dsnew.update({'up_vel' : resample( ds['up_vel'], dtavg, axis=1) })
 
     for vv in othervars:
             dsnew.update({vv : resample( ds[vv], dtavg, axis=0) })
@@ -182,9 +188,9 @@ def qaqc_errvel(self, thresh):
 
     mask = evel.values > thresh
 
-    ds['u'].values[mask] = np.nan
-    ds['v'].values[mask] = np.nan
-    ds['w'].values[mask] = np.nan
+    ds['east_vel'].values[mask] = np.nan
+    ds['north_vel'].values[mask] = np.nan
+    ds['up_vel'].values[mask] = np.nan
 
     self.ds.attrs.update({'QAQC Error Velocity Maximum Threshold':thresh})
 
@@ -209,13 +215,13 @@ def qaqc_tilt(self, cutoff_angle):
     nz = ds.distance.shape
     mask = flag_angle[np.newaxis,:].repeat(nz,0)
 
-    ds['u'].values[mask] = np.nan
-    ds['v'].values[mask] = np.nan
-    ds['w'].values[mask] = np.nan
+    ds['east_vel'].values[mask] = np.nan
+    ds['north_vel'].values[mask] = np.nan
+    ds['up_vel'].values[mask] = np.nan
 
     self.ds.attrs.update({'QAQC Maximum Tilt Angle':cutoff_angle})
 
-def qaqc_depth(self, max_depth, orientation=None, P=None, variables=['u', 'v', 'w']):
+def qaqc_depth(self, max_depth, orientation=None, P=None, variables=['east_vel', 'north_vel', 'up_vel']):
     """
     Mask out regions outside of the maximum depth
     """
@@ -251,16 +257,19 @@ def qaqc_depth(self, max_depth, orientation=None, P=None, variables=['u', 'v', '
     # ds['v'].values[mask] = np.nan
     # ds['w'].values[mask] = np.nan
 
-def sidelobe_trim(self, trim=1.5, P='depth', variables=['u', 'v', 'w'], trim_units='native'):
+def sidelobe_trim(self, trim=1.5, P='depth', variables=['east_vel', 'north_vel', 'up_vel'], trim_units='native'):
     """
     This actually sets these variables to nan. It does not flag them. 
     """
 
     sidelobe_trim_calc(self, trim=trim, P=P, trim_units=trim_units)
     for variable in variables:
-        self.ds[variable].values[self.ds['sidelobe_blank'].values] = np.nan
+        # This should be a flag update not nan
+        # self.ds[variable].values[self.ds['sidelobe_blank'].values] = np.nan
+        qc_var = self.ds[variable].attrs['qc_variable']
+        self.update_qc_flag_logical(qc_var, 'time', self.ds['sidelobe_blank'].values, 1)
 
-def sidelobe_trim_calc(self, trim=1.5, P='depth', trim_units='native'):
+def sidelobe_trim_calc(self, trim=1.5, P='depth', trim_units='native', egvar='east_vel'):
     """
     inputs:
         P - the variable to trim by. Can be numeric or the name of a variable [e.g. pressure] with the appropriate dimensions.
@@ -278,9 +287,9 @@ def sidelobe_trim_calc(self, trim=1.5, P='depth', trim_units='native'):
         
     if not 'sidelobe_blank' in self.ds.data_vars.keys():
         self.ds['sidelobe_blank'] = xr.DataArray(
-            data=np.zeros_like(self.ds.u),
-            dims=self.ds.u.dims,
-            coords=self.ds.u.coords,
+            data=np.zeros_like(self.ds[egvar]),
+            dims=self.ds[egvar].dims,
+            coords=self.ds[egvar].coords,
             attrs=dict(),)    
         
     if type(P) == str:
@@ -312,6 +321,58 @@ def sidelobe_trim_calc(self, trim=1.5, P='depth', trim_units='native'):
     self.ds['sidelobe_blank'].values = self.ds['sidelobe_blank'].values != 0
 
     print('Trimmed sidelobe')
+
+
+def despike_adcp(rr, vars_ds=['east_vel','north_vel','up_vel'], re_val=0.3, qc0_val=2.0, gf_sig=1.0, sw_thresh=0.9, verbose=False):
+    for var in vars_ds:
+        # Check for attribute
+        if 'qc_variable' in rr.ds[var].attrs:
+            qc_var = rr.ds[var].attrs['qc_variable']
+            if verbose:
+                print(f'Flags in {qc_var} before spiking {var} = {np.sum(rr.ds[qc_var].values)}')
+        else:
+            rr.associate_qc_flag(var, 'velocity')
+            qc_var = 'qc_velocity'
+
+        # Get the data
+        flag_data = rr.get_qaqc_var(var)
+        flag_data = flag_data.transpose('time','distance')
+        orig_data = flag_data.copy()
+
+        # Flag unphysical
+        flag_data = flag_data.floatda.qc0_flags(val=qc0_val)
+
+        # Calculate background
+        data_bg = flag_data.floatda.gaussian_filter(gf_sig)
+
+        # Subtract the background values and despike
+        data_hf = flag_data - data_bg
+        for ii, wd in enumerate(data_hf.T):
+            data_hf[:,ii], _ = wd.floatda.despike_gn23(sw_thresh=sw_thresh, verbose=verbose)
+
+        # Call 2D indexing reinstatement
+        re_ix = np.abs(orig_data - orig_data.where(~np.isnan(data_hf)).interpolate_na('time')) < re_val
+        data_hf = data_hf.floatda.reinstate_threshold((orig_data - data_bg), re_ix)
+        new_data = data_hf + data_bg
+
+        # Calculate background
+        data_bg = new_data.floatda.gaussian_filter(gf_sig)
+
+        # Subtract the background values and despike
+        data_hf = new_data - data_bg
+        for ii, wd in enumerate(data_hf.T):
+            data_hf[:,ii], _ = wd.floatda.despike_gn23(sw_thresh=sw_thresh, verbose=verbose)
+
+        # Call 2D indexing reinstatement
+        re_ix = np.abs(orig_data - orig_data.where(~np.isnan(data_hf)).interpolate_na('time')) < re_val/2
+        data_hf = data_hf.floatda.reinstate_threshold((orig_data - data_bg), re_ix)
+
+        # Set the flag
+        rr.update_qc_flag_logical('qc_velocity', 'time', np.isnan(data_hf), 1)
+        if verbose:
+            print(f'Flags in {qc_var} after spiking {var} = {np.sum(rr.ds[qc_var].values)}')
+    return rr
+    
 
 #########
 # Instrument rotation routines
@@ -516,3 +577,60 @@ def _rotate_velocity_uhdas(self, beamvel,\
             orientation=orientation)
 
     return uvwe[:,:,0].T, uvwe[:,:,1].T, uvwe[:,:,2].T
+
+
+def adcp_vars(rr):
+    adcp_vars_rotation = {
+        'east_vel':
+            {'data':rr.ds.vel.isel(dir=0),
+            'attrs':{'long_name':'Eastward water velocity',
+        'coordinates':'time distance',
+                'units':'m/s'},
+            'dims':('distance','time')
+            },
+        'north_vel':
+            {'data':rr.ds.vel.isel(dir=1),
+            'attrs':{'long_name':'Northward water velocity',
+        'coordinates':'time distance',
+                'units':'m/s'},
+            'dims':('distance','time')
+            },
+        'up_vel':
+            {'data':rr.ds.vel.isel(dir=2),
+            'attrs':{'long_name':'Vertical water velocity',
+        'coordinates':'time distance',
+                'units':'m/s'},
+            'dims':('distance','time')
+            },
+        'errvel':
+            {'data':rr.ds.vel.isel(dir=3),
+            'attrs':{'long_name':'Error velocity',
+        'coordinates':'time distance',
+                'units':'m/s'},
+            'dims':('distance','time')
+            },
+            }
+    var_names = list(adcp_vars_rotation.keys())
+
+    adcp_dims = {
+        'distance':rr.ds['distance'].values.astype('float64'),
+        'time': rr.ds['time'],
+        'beam':list(range(1,5)),
+    }
+    
+    # encoding = self.encoding
+    for var in var_names:
+        coords = OrderedDict()
+        for dd in adcp_vars_rotation[var]['dims']:
+            coords.update({dd:adcp_dims[dd]})
+        V = xr.DataArray( adcp_vars_rotation[var]['data'],\
+            dims=adcp_vars_rotation[var]['dims'],\
+            name=var,\
+            attrs = adcp_vars_rotation[var]['attrs'],\
+            coords = coords            )
+        rr.ds.update({var:V})
+
+    rr.associate_qc_flag('east_vel', 'velocity')
+    rr.associate_qc_flag('north_vel', 'velocity')
+    rr.associate_qc_flag('up_vel', 'velocity')
+    return rr

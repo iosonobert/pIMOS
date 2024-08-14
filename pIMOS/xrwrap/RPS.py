@@ -1,5 +1,6 @@
 import os
 import xarray as xr
+import numpy as np
 import pIMOS.xrwrap.xrwrap as xrwrap
 
 import pIMOS.xrwrap.pimoswrap as pimoswrap
@@ -76,6 +77,13 @@ def from_nc(filename, trip=None, RPSvars=None, parse_times=True, verbose=True):
         # Add a trip as the month file starts
         rr.ds.attrs['trip'] = read_RPS.lscm(str(rr.ds['time'][0].values.astype('datetime64[M]')))
 
+    # Check time series monotonicity
+    if not rr.ds['time'].to_index().is_monotonic_increasing:
+        ix = np.diff(ds['time']) > np.timedelta64(0, 's')
+        ix  = np.append(True, ix)
+        print('Non-monotonic time series in ' + file + '\nRemoving ' + str(np.sum(~ix)) + ' points')
+        rr.ds = rr.ds.isel(time=ix)
+
     if verbose:
         print('Done')
     return rr, ds, dsr
@@ -123,22 +131,33 @@ class RPS(pimoswrap.pimoswrap):
         return self
 
 
-    def plot_RPS_export(self, plt_vars, labels='short'):
+    def plot_RPS_export(self, plt_vars, labels='short', fontsize=7, plotraw=True, transpose=False):
+        plt.rcParams.update({'font.size': fontsize})
 
         fig, ax = plt.subplots(len(plt_vars),1, figsize=(14,1.0*len(plt_vars)), gridspec_kw={'hspace':0.07})
+
         if not hasattr(ax, '__len__'):
             ax = [ax]
-        for x, dvar in zip(ax, plt_vars):
-            self.ds[dvar].plot(ax=x, lw=0.8)
+        for x, variable in zip(ax, plt_vars):
+            data = self.ds[variable].T if transpose else self.ds[variable]
+            qaqc_data = self.get_qaqc_var(variable).T if transpose else self.get_qaqc_var(variable)
+
+            if plotraw:
+                data.plot(ax=x, label='Raw', lw=0.8)
+                qaqc_data.plot(ax=x, label='QAQC', lw=0.8)
+
+            if plotraw:
+                x.legend()
+
             x.set_xlim(self.ds['time'][0], self.ds['time'][-1])
             x.grid()
             if labels=='long':
-                if 'long_name' in self.ds[dvar].attrs:
-                    x.set_ylabel(self.ds[dvar].long_name + '\n[' + self.ds[dvar].units + ']')
+                if 'long_name' in self.ds[variable].attrs:
+                    x.set_ylabel(self.ds[variable].long_name + '\n[' + self.ds[variable].units + ']')
                 else:
-                    x.set_ylabel(dvar + '\n[' + self.ds[dvar].units + ']')
+                    x.set_ylabel(variable + '\n[' + self.ds[variable].units + ']')
             else:
-                x.set_ylabel(dvar)
+                x.set_ylabel(variable)
             if x != ax[-1]:
                 x.set_xticklabels('')
             else:

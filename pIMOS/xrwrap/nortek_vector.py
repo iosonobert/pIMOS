@@ -5,7 +5,7 @@ Created on Mon Jul 30 15:17:42 2018
 @author: 20270917
 """
 #%%
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
 import pandas
 import numpy as np
@@ -13,15 +13,16 @@ import xarray as xr
 import matplotlib
 import datetime
 import os 
-import pdb
-
+# import pdb
 import importlib 
+
+import pIMOS.xrwrap.pimoswrap as pimoswrap
 
 # import zutils.xrwrap as xrwrap
 # import zutils.file as zfile
 # import zutils.stats as zstats
-import pIMOS.xrwrap.xrwrap as xrwrap
-import pIMOS.utils.file as zfile
+# import pIMOS.xrwrap.xrwrap as xrwrap
+# import pIMOS.utils.file as zfile
 
 font = {'weight' : 'normal',
         'size'   : 15}
@@ -312,7 +313,7 @@ def read_vec_dd_single(filename, driver, nens=None, debug=True):
 
     return ds, dat
     
-class NORTEK_VECTOR(xrwrap.xrwrap):
+class NORTEK_VECTOR(pimoswrap.pimoswrap):
 
 
     class_attrs = {
@@ -320,14 +321,16 @@ class NORTEK_VECTOR(xrwrap.xrwrap):
             'source': 'pIMOS' 
         }
 
-    def __init__(self, ds):
-        
-        print('Initialising accessor.')
+    def __init__(self, ds, verbose=True):
+        self.verbose = verbose
+
+        if self.verbose:
+            print('Initialising accessor.')  
         self.ds = ds # XRWRAP compatibility
 
         self.store_raw_file_attributes(ds)
-
-        self.enforce_these_attrs(self.class_attrs)
+        self.update_attributes_with_dict(class_attrs)
+        self.enforce_these_attrs(class_attrs)
 
     def to_pto(self, pitch=None, roll=None, heading=None, ori='up', date_lims=[None, None], **kwargs):
         """
