@@ -211,20 +211,30 @@ def from_pdo_dolfynxr(filename, rotate=False, mapbins=False, verbose=False, ship
     # Load the raw binary data
     dsr = rdi.read_rdi(filename) # This would be Levi Kilcher's dat object
     ds = dsr.copy()
-    
+    ds = ds.rename({'range':'distance'})
+
+
     if verbose:
         print(dsr)
 
     ds.attrs['raw_file_name']      = os.path.split(filename)[1]
     ds.attrs['raw_file_directory'] = os.path.split(filename)[0]
 
-    ds=ds.rename({'range':'distance'})
+    coord_sys = ds.attrs['coord_sys'].lower()
     if ship:
-        ds['vel'] = ds['vel'] - ds['vel_bt'].transpose('dir','time')
+        if ds.attrs['coord_sys'].lower() == 'beam':
+            ds['vel'] = ds['vel'] - ds['vel_bt'].transpose('dir','time')
     else:
-        ds=ds.rename({'vel':'beamvel'})
-        ds['beamvel'] = ds.beamvel.swap_dims({'dir': 'beam'})\
-            .transpose('distance', 'time', 'beam')
+        if ds.attrs['coord_sys'].lower() == 'beam':
+            ds=ds.rename({'vel':'beamvel'})
+            ds['beamvel'] = ds.beamvel.swap_dims({'dir': 'beam'})\
+                .transpose('distance', 'time', 'beam')
+        elif ds.attrs['coord_sys'].lower() == 'earth':
+            # raise NotImplementedError('Earth coordinate systems not implemented yet')
+            pass
+        else:
+            raise NotImplementedError('Instrument coordinate systems not implemented yet')
+
     ds=ds.rename({'prcnt_gd':'percent_good'})
     ds=ds.rename({'temp':'temperature'})
     ds=ds.rename({'amp':'echo'})
@@ -233,23 +243,30 @@ def from_pdo_dolfynxr(filename, rotate=False, mapbins=False, verbose=False, ship
     ds['echo'] = ds.echo.transpose('distance', 'time', 'beam')
     ds['corr'] = ds.corr.transpose('distance', 'time', 'beam')
 
-
     rr = RDI_ADCP_PD02(ds)
 
     #############################
     ## Higher Process level stuff
     #############################
     if not ship:
-        rr.associate_qc_flag('beamvel', 'velocity3')
+        if coord_sys == 'beam':
+            rr.associate_qc_flag('beamvel', 'velocity3')
 
     #############################################
     # Rotate raw data, mapping if necessary #####
     #############################################
-    if rotate:
-        rr._calc_rotations(mapbins)
-        ds = rr.ds
-        
-    if False: # I don't know where the Dolfyn gets this info from. And thus, I don't trust this info. 
+    if coord_sys == 'beam':
+        if rotate:
+            rr._calc_rotations(mapbins)
+            dso = rr.ds
+    elif coord_sys == 'earth':
+        if rotate:
+            raise NotImplementedError('Rotation not implemented for this coordinate system, only for beam coords. Set rotate to False and retry.')
+        rr._log_enu()
+    else:
+        raise NotImplementedError('Rotation not implemented for this coordinate system, only for beam coords. Set rotate to False and retry.')
+
+    if False: # I don't know where the Dolfyn gets this info from. And thus, I don't trust this info.
         rr.update_attribute('nominal_instrument_orientation', ds.attrs['orientation'])
 
     # 'DELETED THE ENCODING FROM MATT RAYSONs CODE. QUESTION FOR HIM.'
@@ -305,6 +322,90 @@ class RDI_ADCP_PD02(pimoswrap.pimoswrap):
     #######
     # Private methods
     #######
+    def _log_enu(self):
+        """
+        Simple function for logging U, V and W when collected in ENU coordinates.
+
+        """
+        ds = self.ds
+        u = ds.vel.isel(dir=0)
+        v = ds.vel.isel(dir=1)
+        w = ds.vel.isel(dir=2)
+        errvel = ds.vel.isel(dir=3)
+
+        adcp_dims = {
+            'distance':self.ds['distance'].values.astype('float64'),
+            'time': self.ds['time'],
+            'beam':list(range(1,5)),
+        }
+
+        adcp_vars_rotation = {
+                'east_vel':
+                    {'data':u,
+                    'attrs':{'long_name':'Eastward water velocity',
+                'coordinates':'time distance',
+                        'units':'m/s'},
+                    'dims':('distance','time')
+                    },
+                'north_vel':
+                    {'data':v,
+                    'attrs':{'long_name':'Northward water velocity',
+                'coordinates':'time distance',
+                        'units':'m/s'},
+                    'dims':('distance','time')
+                    },
+                'up_vel':
+                    {'data':w,
+                    'attrs':{'long_name':'Vertical water velocity',
+                'coordinates':'time distance',
+                        'units':'m/s'},
+                    'dims':('distance','time')
+                    },
+                'errvel':
+                    {'data':errvel,
+                    'attrs':{'long_name':'Error velocity',
+                'coordinates':'time distance',
+                        'units':'m/s'},
+                    'dims':('distance','time')
+                    },
+                    }
+
+        var_names = list(adcp_vars_rotation.keys())
+        ds = xr.Dataset()
+
+        # encoding = self.encoding
+        for var in var_names:
+        #for var in ['beamvel']:
+            if self.verbose:
+                print('Converting variable: %s...'%var)
+            
+            coords = OrderedDict()
+            for dd in adcp_vars_rotation[var]['dims']:
+                coords.update({dd:adcp_dims[dd]})
+
+            V = xr.DataArray( adcp_vars_rotation[var]['data'],\
+                dims=adcp_vars_rotation[var]['dims'],\
+                name=var,\
+                attrs = adcp_vars_rotation[var]['attrs'],\
+                coords = coords
+            )
+
+            ds.update({var:V})
+            
+            # encoding.update({var:{'zlib':True,'_FillValue':-999999.}})
+
+        ###########################################
+        ### Careful here not to overwrite the attrs
+        ###########################################
+        attrs = self.ds.attrs
+        self.ds = xr.merge((self.ds, ds))
+        self.ds.attrs = attrs
+        # self.encoding = encoding
+
+        self.associate_qc_flag('east_vel', 'velocity')
+        self.associate_qc_flag('north_vel', 'velocity')
+        self.associate_qc_flag('up_vel',    'velocity')
+
     def _calc_rotations(self, mapbins):
 
         print('Rotating...')
