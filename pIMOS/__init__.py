@@ -4,6 +4,9 @@ import imp
 import pIMOS.xrwrap.seabird_37_39_56 as seabird_37_39_56
 import pIMOS.xrwrap.wetlabs_ntu as wetlabs_ntu
 
+print('INITIALISING pIMOS')
+from ._version import __version__
+
 try:
     import pIMOS.xrwrap.nortek_signature as nortek_signature
     import pIMOS.xrwrap.nortek_vector as nortek_vector
