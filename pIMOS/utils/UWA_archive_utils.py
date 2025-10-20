@@ -6,6 +6,7 @@ import numpy as np
 import afloat.plot.plotting as zplot
 import warnings
 from pIMOS import __version__
+from pIMOS.utils.quality_control import strcmpi
 
 """
 Various tools that should be pIMOS tools, but that I have not officially found a spot for yet. 
@@ -88,14 +89,14 @@ def parse_possible_mooring_dates(db_config, recovered=None):
 
     return df
 
-def strcmpi(lst, string):
-    """
-    Copy of the matlab function.
-    Returns list.
-    """
-    rtn = [i.lower() == string.lower() for i in lst]
-    return rtn
-    pass
+# def strcmpi(lst, string):
+#     """
+#     Copy of the matlab function.
+#     Returns list.
+#     """
+#     rtn = [i.lower() == string.lower() for i in lst]
+#     return rtn
+#     pass
 
 def plot_echo(rr, db_data, mooring, attributes, variable='echo', width=65,\
              cmap='magma', experiment=None, recovered=None):
@@ -168,7 +169,7 @@ def plot_temp(rr, db_data, mooring, attributes, variable='Temperature',\
             add_mooring_dates(db_data, mooring, plt.gca(), experiment=experiment, recovered=recovered)
         else:
             print('No mooring dates available')
-    plt.show()
+    # plt.show()
     
     return fig
 
@@ -192,7 +193,7 @@ def add_mooring_dates(db_data, mooring, ax, experiment=None, recovered=None):
     
     pass
 
-def pIMOS_get_archive_folder(archive_dir, file_version):
+def pIMOS_get_archive_folder(archive_dir, file_version, pimos_version=None):
     """
     Get the specific archive folder for the pIMOS version, and file process_level. 
     """

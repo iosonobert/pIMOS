@@ -158,8 +158,8 @@ def from_fv01_archive(files, stack_variables, **kwargs):
             lat_nom = ds.lat_nom
             lon_nom = ds.lon_nom
         else:
-            assert(lon_nom.values == ds.lon_nom.values)
-            assert(lat_nom.values == ds.lat_nom.values)
+            assert(np.round(lon_nom.values,5) == np.round(ds.lon_nom.values,5))
+            assert(np.round(lat_nom.values,5) == np.round(ds.lat_nom.values,5))
 
         for attr in attrs_to_join:
             joined_attrs[attr] += [ds.attrs[attr]]
@@ -209,7 +209,7 @@ def from_fv01_archive(files, stack_variables, **kwargs):
                 if first_dimension_set is None: # This will be None on the first pass
                     first_dimension_set = var.dims
                 elif not var.dims == first_dimension_set:
-                    raise(Exception("The set of variables you are trying to merge don't have trhe same dimensions. This won't work."))
+                    raise(Exception("The set of variables you are trying to merge don't have the same dimensions. This won't work."))
                 
                 # KILL FIRST AND LAST VALUE
                 var_values[:, 0] = np.nan

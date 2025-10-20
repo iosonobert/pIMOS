@@ -234,7 +234,10 @@ def calc_speed(distance, time):
     
 
 def calc_cart_vel(easting, northing, time, qc_var=None, ds=None):
-    good_flag = qcvar(qc_var, ds)
+    if qc_var is not None:
+        good_flag = qcvar(qc_var, ds)
+    else:
+        good_flag = qcvar(qc_var, ds, length=len(time))
 
     # Calculate the east-west and north-south velocity
     east_vel = np.full(len(time), np.nan)
