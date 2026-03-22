@@ -4,6 +4,15 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "pIMOS"
 dynamic = ["version"]
+dependencies = [
+    "numpy",
+    "scipy",
+    "matplotlib",
+    "xarray",
+    "pandas",
+    "dolfyn>=1.2.0",
+    "turbo_lance",
+]
 
 [tool.setuptools_scm]
 version_file = "pIMOS/_version.py"

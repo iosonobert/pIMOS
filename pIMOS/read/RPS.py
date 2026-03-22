@@ -462,6 +462,11 @@ def read_raw_wms(file, cols=[0,1,2,3,8,9,10], colnames=None, skiprows=2,\
     # Reindex to time & convert to numpy datetime64
     df.set_index('time', inplace=True)
     df.index = pd.to_datetime(df.index)
+    
+    # Try coerce columns to numeric
+    for cl in colnames:
+        if cl != 'time':
+            df[cl] = pd.to_numeric(df[cl], errors='coerce')
 
     # Convert to dataset
     ds = df.to_xarray()

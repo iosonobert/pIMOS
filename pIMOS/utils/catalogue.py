@@ -432,7 +432,7 @@ def filter_depth(catalogue, depth_filter, depth_var='z_nom', greater_than=True):
     Filter the catalogue for depths greater than the depth_filter
     '''
     # Convert z_nom strings to nan
-    catalogue[depth_var] = catalogue[depth_var].replace('', np.nan)
+    catalogue[depth_var] = pd.to_numeric(catalogue[depth_var], errors='coerce')#.replace('', np.nan)
 
     if greater_than:
         z_nomx = catalogue[depth_var] > depth_filter

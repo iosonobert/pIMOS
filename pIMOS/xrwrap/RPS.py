@@ -94,7 +94,7 @@ def rtcp_from_metnet(files, **kwargs):
     return RPS(read_RPS.compile_raw_rtcp(files, **kwargs))
 
 # Low effort code to deal with metnet crap
-def wms_from_metnet(file, kwargs):
+def wms_from_metnet(file, **kwargs):
     return RPS(read_RPS.read_raw_wms(file, **kwargs))
 
 
