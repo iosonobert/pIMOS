@@ -286,6 +286,7 @@ def from_netcdf(infile):
     
     return rr, ds
 
+
 ##########################
 # Actual xarray wrap #####
 ##########################
@@ -301,7 +302,9 @@ class RDI_ADCP_PD02(pimoswrap.pimoswrap):
         self.ds = ds # XRWRAP compatibility
 
         self.store_raw_file_attributes(ds)
-        self.update_attributes_with_dict(class_attrs)
+        if self.verbose:
+            print('Updating file attributes') 
+        self.update_attributes_with_dict(class_attrs) 
         self.enforce_these_attrs(class_attrs)
     
     #######

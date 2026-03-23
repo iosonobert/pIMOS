@@ -580,30 +580,35 @@ def _rotate_velocity_uhdas(self, beamvel,\
 
 
 def adcp_vars(rr):
+    if 'vel' in rr.ds.vars:
+        data_list = [rr.ds.vel.isel(dir=0), rr.ds.vel.isel(dir=1),\
+                     rr.ds.vel.isel(dir=2), rr.ds.vel.isel(dir=3)]
+    elif 'u' in rr.ds.vars:
+        data_list = [rr.ds.u, rr.ds.v, rr.ds.w, None]
     adcp_vars_rotation = {
         'east_vel':
-            {'data':rr.ds.vel.isel(dir=0),
+            {'data':data_list[0],
             'attrs':{'long_name':'Eastward water velocity',
         'coordinates':'time distance',
                 'units':'m/s'},
             'dims':('distance','time')
             },
         'north_vel':
-            {'data':rr.ds.vel.isel(dir=1),
+            {'data':data_list[1],
             'attrs':{'long_name':'Northward water velocity',
         'coordinates':'time distance',
                 'units':'m/s'},
             'dims':('distance','time')
             },
         'up_vel':
-            {'data':rr.ds.vel.isel(dir=2),
+            {'data':data_list[2],
             'attrs':{'long_name':'Vertical water velocity',
         'coordinates':'time distance',
                 'units':'m/s'},
             'dims':('distance','time')
             },
         'errvel':
-            {'data':rr.ds.vel.isel(dir=3),
+            {'data':data_list[3],
             'attrs':{'long_name':'Error velocity',
         'coordinates':'time distance',
                 'units':'m/s'},
