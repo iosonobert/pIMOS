@@ -47,9 +47,9 @@ def from_netcdf(infile):
 
     return rr, ds
 
-def from_cnvfile(filename):
+def from_cnvfile(filename, depth_name='depSM'):
         
-    ds = read_sbdctd.read(filename)
+    ds = read_sbdctd.read(filename, depth_name=depth_name)
 
     ds.attrs['raw_file_name']      = os.path.split(filename)[1]
     ds.attrs['raw_file_directory'] = os.path.split(filename)[0]
@@ -101,6 +101,12 @@ class SOLANDER_CTD(xrwrap.xrwrap):
             
         if 't190C' in self.ds:
             self.ds = self.ds.rename(name_dict={'t190C': 'Temperature2'})
+        
+        if 'sbeox0MmperL' in self.ds:
+            self.ds = self.ds.rename(name_dict={'sbeox0MmperL': 'Oxygen'})
+
+        if 'sbeox1MmperL' in self.ds:
+            self.ds = self.ds.rename(name_dict={'sbeox1MmperL': 'Oxygen2'})
         
         if 'c0Sperm' in self.ds:
             self.ds = self.ds.rename(name_dict={'c0Sperm': 'Conductivity'})
