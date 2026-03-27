@@ -19,10 +19,10 @@ import glob
 import importlib 
 from collections import OrderedDict
 
-import zutils.xrwrap as xrwrap
-import zutils.stats as zstats
-import zutils.file as zfile
-import zutils.time as ztime
+import pIMOS.xrwrap.xrwrap as xrwrap
+# import zutils.stats as zstats
+# import zutils.file as zfile
+import afloat.time as ztime
 
 import pIMOS.xrwrap.pimos_pls as pls
 import pIMOS.xrwrap.seabird_37_39_56 as wrap_sbd
@@ -61,6 +61,7 @@ def from_fv01_archive_slow(files, stack_variables, znew, **kwargs):
     start = kwargs.pop('start', None)
     end = kwargs.pop('end', None)
     z_method = kwargs.pop('z_method', 'z_nom')
+    depth_variable = kwargs.pop('depth_variable', 'Depth')
 
     include_funky = kwargs.pop('include_funky', True)
 
@@ -116,7 +117,8 @@ def from_fv01_archive_slow(files, stack_variables, znew, **kwargs):
         for attr in attrs_to_join:
             joined_attrs[attr] += [ds.attrs[attr]]
 
-        z = ds.Depth.values
+
+        z = ds[depth_variable].values
         
         # Funky interp scheme 
         znewi = np.linspace(znew[0], max(z), nz) 
