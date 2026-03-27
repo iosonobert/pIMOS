@@ -4,7 +4,7 @@ import pandas as pd, numpy as np, xarray as xr
 
 
 
-def get_pimos_catalogue(root_folder, is_moored=True):
+def get_pimos_catalogue(root_folder, is_moored=True, version=None):
     """
     Loads the PIMOS catalogue from a specified root folder. The root folder should contain a subfolder
     called 'pimos_vX.Y', where X.Y is the version of the pIMOS library you are using. 
@@ -24,6 +24,8 @@ def get_pimos_catalogue(root_folder, is_moored=True):
         does not output the raw filename. If False, the function assumes that the data 
         is from profiling instruments and does not output the nominal height above bed. 
         Default is True. **IMPORTANT BECAUSE NAMING CONVENTION DIFFERS**
+    version : str, optional
+        The version of the PIMOS library being used. If None, the function uses the current version.
 
     Returns
     -------
@@ -42,7 +44,10 @@ def get_pimos_catalogue(root_folder, is_moored=True):
         a warning is printed to the console.
     """
 
-    version_subfolder = f'pimos_v{pIMOS.__version__}'
+    if version is not None:
+        version_subfolder = f'pimos_v{version}'
+    else:
+        version_subfolder = f'pimos_v{pIMOS.__version__}'
 
     print(f'Looking for {version_subfolder} within {root_folder}')
 
@@ -384,7 +389,7 @@ def get_distance_bounds(catalogue):
             catalogue.at[i, 'distance_bounds'] =  catalogue.at[i, 'z_nom'] -\
                                                     catalogue.at[i, 'distance_bounds']
         else:
-            catalogue.at[i, 'distance_bounds'] = [np.nan, np.nan]
+            catalogue.iloc[i]['distance_bounds'] = np.array([np.nan, np.nan])
     return catalogue
 
 
@@ -420,3 +425,23 @@ def dataset_key_check(key_list, key, strict=True):
             return [v for v in key_list if key in v]
         else:
             return ''
+
+
+def filter_depth(catalogue, depth_filter, depth_var='z_nom', greater_than=True):
+    '''
+    Filter the catalogue for depths greater than the depth_filter
+    '''
+    # Convert z_nom strings to nan
+    catalogue[depth_var] = pd.to_numeric(catalogue[depth_var], errors='coerce')#.replace('', np.nan)
+
+    if greater_than:
+        z_nomx = catalogue[depth_var] > depth_filter
+        z_boundsx = np.array([np.max(row['distance_bounds']) for i, row in catalogue.iterrows()]) > depth_filter
+    else:
+        z_nomx = catalogue[depth_var] < depth_filter
+        z_boundsx = np.array([np.min(row['distance_bounds']) for i, row in catalogue.iterrows()]) < depth_filter
+    z_nanx = catalogue[depth_var].isnull()
+    z_xxx = z_nomx | z_nanx | z_boundsx
+
+    filtered_catalogue = catalogue[z_xxx]    
+    return filtered_catalogue

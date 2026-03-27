@@ -503,12 +503,19 @@ def pimosTimeSeriesSpikeQC():
 
 def strcmpi(lst, string):
     """
-    Copy of the matlab function.
-    Returns list.
+    Case-insensitive comparison of each element in lst to string.
+    Returns a list of booleans.
     """
-    rtn = [i.lower() == string.lower() for i in lst]
+    str_ref = str(string).lower()
+    rtn = []
+    for i in lst:
+        try:
+            match = str(i).lower() == str_ref
+        except Exception:
+            match = False
+        rtn.append(match)
     return rtn
-    pass
+
 
 def get_dim_index(array, dim_name):
     """

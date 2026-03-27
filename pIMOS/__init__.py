@@ -1,5 +1,5 @@
 import xarray as _xr, warnings
-import imp
+from importlib.util import find_spec
 
 import pIMOS.xrwrap.seabird_37_39_56 as seabird_37_39_56
 import pIMOS.xrwrap.wetlabs_ntu as wetlabs_ntu
@@ -20,7 +20,7 @@ import pIMOS.xrwrap.solander_ctd as solander_ctd
 import pIMOS.xrwrap.lisst as lisst
 
 try:
-    imp.find_module('pyODAS')
+    find_spec('pyODAS')
     import pIMOS.xrwrap.rsi_vmp as rsi_vmp
     has_rsi_vmp = True
 except ImportError:

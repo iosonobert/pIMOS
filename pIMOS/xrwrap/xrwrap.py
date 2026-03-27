@@ -979,12 +979,17 @@ class xrwrap():
         #     print(self.attrs)
 
         for attr in enforced_attributes.keys():
+            # if attr not in self.attrs.keys():
+            #     raise Exception(f'Enforceable attribute {attr} not present')
+            
             if self.attrs[attr] == '':
+                print(f'Updating attribute: {self.attrs[attr]}')
                 self.update_attribute(attr, enforced_attributes[attr])
             else:
                 print(self.attrs[attr])
                 print(enforced_attributes[attr])
-                assert(self.attrs[attr]==enforced_attributes[attr])  
+                assert(self.attrs[attr]==enforced_attributes[attr],\
+                    f'{self.attrs[attr]} does not equal {enforced_attributes[attr]}')  
 
     def check_attrs(self):
         """

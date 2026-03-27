@@ -11,10 +11,13 @@ from datetime import datetime, timedelta
 
 
 RPSdefault = {
+   'WaterTemp':'temperature',\
+   'WaterTemp1':'temperature',\
    'SeaWaterTemp':'temperature',\
    'SeaWaterTemp1':'temperature',\
    'Salinity':'salinity',\
    'Pressure':'pressure',\
+   'AbsolutePressure':'pressure',\
    'WaterDepth':'waterlevel',\
    'WaterDepth1':'waterlevel',\
    'SensorDepth':'waterlevel',\
@@ -47,6 +50,10 @@ alt_vars = {
    'CurSpd':'water_vel',\
    'CurDirn':'water_dir'}
 
+height_attrs = {'long_name': 'Instrument depth below sea surface',
+                'units': 'm',
+                'notes': 'Not clear if RPS has adjusted for barotropic tide or not.'}
+
 
 ############
 # Functions
@@ -56,10 +63,14 @@ def scm(s):
     return s.lstrip().rstrip().replace(' - ','_').replace(' ','_').replace('-','_')
 
 def lscm(s):
-    return s.lower().lstrip().rstrip().replace(' - ','_').replace(' ','_').replace('-','_')
+    # return s.lower().lstrip().rstrip().replace(' - ','_').replace(' ','_').replace('-','_')
+    return scm(s.lower())
 
 def get_arr_dict(dict, var):
     return np.array([dict[dc][var] for dc in dict])
+
+def get_arr_dict_lower(dict):
+    return np.array([dc.lower() for dc in dict.keys()])
 
 
 def process_depth_attr(nc):
@@ -181,12 +192,46 @@ def add_rps_variable(ds, dsr, time, varname, newname, verbose=True, parse_times=
             mask, qgen = flag_rps_variable(dsr, V, parse_times, verbose)
             ds.update({newname: V})
             if qgen is not None:
-                qc_var = newname + '_qc'
+                qc_var = 'qc_' + newname
                 qc_val = np.zeros(len(ds.time.values))
                 qc_val[mask] = 1
                 ds[qc_var] = xr.DataArray(qc_val, dims=('time',), name=qc_var)
                 ds[newname].attrs['qc_variable'] = qc_var
     return ds, qgen
+
+
+def check_height_var(ds, dsr, verbose=True):
+    # Check if height is an array
+    if ('height' in get_arr_dict_lower(dsr.coords)) | ('height' in get_arr_dict_lower(dsr.data_vars)):
+        # Get the index of height in the coords
+        if 'height' in get_arr_dict_lower(dsr.coords):
+            hix = get_arr_dict_lower(dsr.coords) == 'height'
+            h_name = np.array(list(dsr.coords.keys()))[hix][0]
+        else:
+            hix = get_arr_dict_lower(dsr.coords) == 'height'
+            h_name = np.array(list(dsr.coords.keys()))[hix][0]
+
+        # Check if float  or array
+        if isinstance(dsr[h_name].values, np.ndarray):
+            if len(np.shape(dsr[h_name].values)) > 0:
+                if len(dsr[h_name].values) > 1:
+                    if np.all(dsr[h_name].values == dsr[h_name].values[0]):
+                        print('Special seastar reversal')
+                        ds.attrs['nominal_instrument_height_asb'] = -ds.attrs['nominal_site_depth'] - float(dsr[h_name].values[0])
+                        ds['z_nom'] = ds.attrs['nominal_site_depth'] + ds.attrs['nominal_instrument_height_asb']
+                    else:
+                        if verbose:
+                            print('Height is an array... converting to waterlevel')
+                        wl = ds.attrs['nominal_site_depth'] + dsr[h_name].values
+                        ds['waterlevel'] = xr.DataArray(wl, dims=('time',), name='waterlevel')
+                        ds['waterlevel'].attrs = height_attrs
+                        ds['z_nom'] = np.round(np.nanmedian(ds['waterlevel'].values),1)
+                        ds.attrs['nominal_instrument_height_asb'] = -1*ds.attrs['nominal_site_depth'] + ds['z_nom'].values
+                        # ds = ds.drop(h_name)
+            else:  
+                ds.attrs['nominal_instrument_height_asb'] = float(dsr[h_name].values)
+                ds['z_nom'] = ds.attrs['nominal_site_depth'] + ds.attrs['nominal_instrument_height_asb']
+    return ds
 
 
 # Basic read function
@@ -273,8 +318,21 @@ def process_rps_file(filename, RPSvars=RPSdefault, parse_times=True, verbose=Tru
             raise ValueError('Error looking for instrument height: ' + filename)
 
     # Convert site depth if necessary
+    if 'nominal_site_depth' not in ds.attrs.keys():
+        try:
+            if 'depth_height' in dsr.attrs['history']:
+                # Find firs and second " after depth_height
+                ixd = dsr.attrs['history'].find('depth_height')
+                ixs = dsr.attrs['history'].find('"', ixd+1)
+                ixe = dsr.attrs['history'].find('"', ixs+1)               
+                ds.attrs['nominal_site_depth'] = float(dsr.attrs['history'][ixs+1:ixe])
+        except:
+            raise ValueError('No depth_height in history: ' + filename)
     if ds.attrs['nominal_site_depth'] > 0:
         ds.attrs['nominal_site_depth'] = ds.attrs['nominal_site_depth'] * -1
+
+    # Check if height is an array
+    ds = check_height_var(ds, dsr, verbose=verbose)
 
     # Get the station name to attrs
     _, name = get_station_name(ds)
@@ -404,6 +462,11 @@ def read_raw_wms(file, cols=[0,1,2,3,8,9,10], colnames=None, skiprows=2,\
     # Reindex to time & convert to numpy datetime64
     df.set_index('time', inplace=True)
     df.index = pd.to_datetime(df.index)
+    
+    # Try coerce columns to numeric
+    for cl in colnames:
+        if cl != 'time':
+            df[cl] = pd.to_numeric(df[cl], errors='coerce')
 
     # Convert to dataset
     ds = df.to_xarray()
