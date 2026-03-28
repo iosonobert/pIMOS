@@ -6,14 +6,36 @@ build-backend = "setuptools.build_meta"
 name = "pIMOS"
 dynamic = ["version"]
 dependencies = [
-    "numpy==1.24.2",
+    "numpy>=1.24.2",
     "scipy",
     "matplotlib",
     "xarray",
     "pandas",
+]
+
+[project.optional-dependencies]
+read = [
+    "dolfyn==1.2.0",
+    "seabird",
+    "afloat",
+]
+
+[project.optional-dependencies]
+process = [
     "dolfyn==1.2.0",
     "turbo_lance",
+    "afloat",
+    "d2spike"
 ]
 
 [tool.setuptools_scm]
 version_file = "pIMOS/_version.py"
+
+[tool.setuptools.packages.find]
+include = ["pIMOS", "pIMOS.*"]
+exclude = ["build", "dist", "notebooks", "make_gif", "postgres", "reporting", "source_py_code"]
+
+[tool.pytest.ini_options]
+markers = [
+    "install: integration smoke test that creates a clean virtual environment and installs pIMOS",
+]

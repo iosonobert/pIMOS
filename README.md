@@ -169,6 +169,60 @@ Current state of play:
 - windrose [this is not a good dependency, amend this]
 - jupyter [not really a dependency but the examples use jupyter to help render in github]
 
+# Testing
+
+## Install smoke test [implemented]
+
+The repo now includes an install smoke test that validates packaging and dependency resolution in a clean temporary virtual environment.
+
+What it does:
+
+1. Creates a temporary virtual environment.
+2. Installs the package from the local source tree with `pip install .`.
+3. Runs `pip check`.
+4. Verifies direct dependencies declared in `pyproject.toml` are present.
+5. Checks installed package metadata/module discovery.
+6. Deletes the temporary environment on exit.
+
+Run it with:
+
+```bash
+pytest -m install -q
+```
+
+This test is implemented in `tests/test_install_smoke.py`.
+
+## Runtime smoke tests [planned]
+
+Runtime smoke tests are not implemented yet, but are recommended as a second test layer.
+
+Purpose:
+
+- Install smoke tests validate packaging/dependency resolution.
+- Runtime smoke tests validate that key imports and basic workflows actually execute.
+
+Why this is separate:
+
+- Top-level imports can pull a large dependency chain.
+- A package can install correctly but still fail at runtime due to transitive import or API compatibility issues.
+
+Suggested runtime markers and usage:
+
+```bash
+pytest -m runtime -q
+```
+
+Suggested first runtime checks:
+
+1. `import pIMOS`.
+2. Import selected critical submodules used in production.
+3. Execute one lightweight end-to-end operation on a tiny sample dataset.
+
+Suggested CI usage:
+
+1. Run `-m install` on broad interpreter matrix.
+2. Run `-m runtime` on known-supported interpreter/dependency combinations.
+
 
 # Known Issues
 
