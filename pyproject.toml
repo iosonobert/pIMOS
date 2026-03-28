@@ -1,3 +1,4 @@
+[build-system]
 requires = ["setuptools>=80.9.0", "wheel", "setuptools_scm"]
 build-backend = "setuptools.build_meta"
 
@@ -5,14 +6,13 @@ build-backend = "setuptools.build_meta"
 name = "pIMOS"
 dynamic = ["version"]
 dependencies = [
-    "numpy",
+    "numpy==1.24.2",
     "scipy",
     "matplotlib",
     "xarray",
     "pandas",
-    "dolfyn>=1.2.0",
+    "dolfyn==1.2.0",
     "turbo_lance",
-    "d2spike==0.0.3",
 ]
 
 [tool.setuptools_scm]
