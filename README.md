@@ -234,6 +234,58 @@ Suggested CI usage:
 1. Run `-m install` on broad interpreter matrix.
 2. Run `-m runtime` on known-supported interpreter/dependency combinations.
 
+# Versioning
+
+Versioning is managed automatically via [`setuptools_scm`](https://github.com/pypa/setuptools_scm), which derives the package version from Git tags.
+
+## How it works
+
+- The file `pIMOS/_version.py` is **auto-generated** at install time. Do not edit it manually and do not commit it (it is listed in `.gitignore`).
+- When the working tree is exactly at a release tag (e.g. `v1.2.1`), the package reports `1.2.1`.
+- When there are commits after a tag, the version becomes a `dev` string, e.g. `1.2.2.dev3+gabcdef`.
+- If no Git metadata is available at all (e.g. a source tarball), `fallback_version = "1.1.2"` is used (set in `pyproject.toml`).
+
+## Checking the current version
+
+```python
+import pIMOS
+print(pIMOS.__version__)
+```
+
+Or from the command line:
+
+```bash
+python -c "import pIMOS; print(pIMOS.__version__)"
+```
+
+## Making a release (collaborators)
+
+1. Commit everything and push to `master`:
+   ```bash
+   git push
+   ```
+2. Create an annotated tag on the commit you want to release:
+   ```bash
+   git tag -a v1.3.0 -m "Release v1.3.0"
+   ```
+3. Push the tag to GitHub:
+   ```bash
+   git push origin v1.3.0
+   ```
+4. Reinstall locally to regenerate `_version.py` from the new tag:
+   ```bash
+   pip install -e .
+   python -c "import pIMOS; print(pIMOS.__version__)"   # should print 1.3.0
+   ```
+
+If you need to build a distribution for PyPI:
+```bash
+pip install build
+python -m build
+# uploads dist/*.whl and dist/*.tar.gz to PyPI
+```
+
+The built artifact will carry the exact version string from the tag.
 
 # Known Issues
 
