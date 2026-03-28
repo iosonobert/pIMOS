@@ -3,10 +3,6 @@ Created on Mon Jul 30 15:17:42 2018
 
 @author: 20270917
 """
-#%%
-
-
-#%%
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -202,34 +198,34 @@ class SOLANDER_CTD(xrwrap.xrwrap):
                 self.associate_qc_flag(v, v)
         
         if 'Density' in ds.data_vars:
-            ds['Density'].attrs['long_name'] = 'sea_water_density'
+            ds['Density'].attrs['long_name']     = 'sea_water_density'
             ds['Density'].attrs['standard_name'] = 'sea_water_density'
-            ds['Density'].attrs['units'] = 'kg m-3'
-            ds['Density'].attrs['cf_compliant'] = 1
+            ds['Density'].attrs['units']         = 'kg m-3'
+            ds['Density'].attrs['cf_compliant']  = 1
             if 'qc_variable' not in ds['Density'].attrs:
                 self.associate_qc_flag('Density', 'Density')
 
         for v in ['Salinity', 'Salinity2']:
             if v in ds.data_vars:
-                ds[v].attrs['long_name'] = 'sea_water_salinity'
-                ds[v].attrs['standard_name'] = 'sea_water_salinity'
-                ds[v].attrs['units'] = 'PSU'
-                ds[v].attrs['cf_compliant'] = 1
+                ds[v].attrs['long_name']      = 'sea_water_salinity'
+                ds[v].attrs['standard_name']  = 'sea_water_salinity'
+                ds[v].attrs['units']          = 'PSU'
+                ds[v].attrs['cf_compliant']   = 1
                 if 'qc_variable' not in ds[v].attrs:
                     self.associate_qc_flag(v, v)
 
         if 'Depth' in ds.data_vars:
-            ds['Depth'].attrs['long_name'] = 'pressure_sensor_depth_below_sea_surface'
+            ds['Depth'].attrs['long_name']     = 'pressure_sensor_depth_below_sea_surface'
             ds['Depth'].attrs['standard_name'] = 'pressure_sensor_depth_below_sea_surface'
-            ds['Depth'].attrs['units'] = 'm'
-            ds['Depth'].attrs['cf_compliant'] = 1
+            ds['Depth'].attrs['units']         = 'm'
+            ds['Depth'].attrs['cf_compliant']  = 1
             if 'qc_variable' not in ds['Depth'].attrs:
                 self.associate_qc_flag('Depth', 'Pressure')
             
         for var in ds:
             if not 'cf_compliant' in ds[var].attrs:
                 print('Setting {} to be non cf_compliant'.format(var))
-                ds[var].attrs['cf_compliant'] = 0
+                ds[var].attrs['cf_compliant']  = 0
                 
 
 # %%
