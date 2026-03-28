@@ -21,7 +21,7 @@ try:
     from d2spike.despike_GN import qc0_Flags
     from d2spike.despike import D2spikearray
 except:
-    print('d2spike not available')
+    print('d2spike not available !!!')
     pass
 
 class_attrs = {

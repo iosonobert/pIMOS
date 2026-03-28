@@ -18,6 +18,7 @@ import scipy.signal as signal
 import pdb
 import datetime
 import os
+from seabird import cnv
 
 # import zutils.xrwrap as xrwrap
 import pIMOS.xrwrap.xrwrap as xrwrap
@@ -50,6 +51,7 @@ def from_netcdf(infile):
 def from_cnvfile(filename):
         
     ds = read_sbdctd.read(filename)
+    # ds = cnv.fCNV(filename)
 
     ds.attrs['raw_file_name']      = os.path.split(filename)[1]
     ds.attrs['raw_file_directory'] = os.path.split(filename)[0]
@@ -139,6 +141,33 @@ class SOLANDER_CTD(xrwrap.xrwrap):
             self.ds = self.ds.assign_coords({'time': self.ds.timeS})
             self.ds = self.ds.drop('timeS')
             
+        if 'TEMP' in self.ds:
+            self.ds = self.ds.rename(name_dict={'TEMP': 'Temperature'})
+            
+        if 'CNDC' in self.ds:
+            self.ds = self.ds.rename(name_dict={'CNDC': 'Conductivity'})
+            
+        if 'PRES' in self.ds:
+            self.ds = self.ds.rename(name_dict={'PRES': 'Pressure'})
+            
+        if 'TEMP2' in self.ds:
+            self.ds = self.ds.rename(name_dict={'TEMP2': 'Temperature2'})
+            
+        if 'CNDC2' in self.ds:
+            self.ds = self.ds.rename(name_dict={'CNDC2': 'Conductivity2'})
+            
+        if 'sbeox0Mm_L' in self.ds:
+            self.ds = self.ds.rename(name_dict={'sbeox0Mm_L': 'Oxygen'})
+            
+        if 'sbeox1Mm_L' in self.ds:
+            self.ds = self.ds.rename(name_dict={'sbeox1Mm_L': 'Oxygen2'})
+            
+        if 'DEPTH' in self.ds:
+            self.ds = self.ds.rename(name_dict={'DEPTH': 'Depth'})
+            
+        if 'density' in self.ds:
+            self.ds = self.ds.rename(name_dict={'density': 'Density'})
+                        
         ds = self.ds
 
         for v in ['Temperature', 'Temperature2']:
@@ -147,14 +176,16 @@ class SOLANDER_CTD(xrwrap.xrwrap):
                 ds[v].attrs['standard_name'] = 'seawater_temperature'
                 ds[v].attrs['units'] = 'deg'
                 ds[v].attrs['cf_compliant'] = 1
-                self.associate_qc_flag(v, v)
+                if 'qc_variable' not in ds[v].attrs:
+                    self.associate_qc_flag(v, v)
 
         if 'Pressure' in ds.data_vars:
             ds['Pressure'].attrs['standard_name'] = 'sea_water_pressure'
             ds['Pressure'].attrs['long_name'] = '"Sea water pressure" is the pressure that exists in the medium of sea water. It includes the pressure due to overlying sea water, sea ice, air and any other medium that may be present. For sea water pressure excluding the pressure due to overlying media other than sea water, the standard name sea_water_pressure_due_to_sea_water should be used.'
             ds['Pressure'].attrs['units'] = 'dbar'
             ds['Pressure'].attrs['cf_compliant'] = 1
-            self.associate_qc_flag('Pressure', 'Pressure')
+            if 'qc_variable' not in ds['Pressure'].attrs:
+                self.associate_qc_flag('Pressure', 'Pressure')
 
         for v in ['Conductivity', 'Conductivity2']:
             if v in ds.data_vars:
@@ -162,14 +193,16 @@ class SOLANDER_CTD(xrwrap.xrwrap):
                 ds[v].attrs['standard_name'] = 'sea_water_electrical_conductivity'
                 ds[v].attrs['units'] = 'S m-1'
                 ds[v].attrs['cf_compliant'] = 1
+            if 'qc_variable' not in ds[v].attrs:
                 self.associate_qc_flag(v, v)
         
         if 'Density' in ds.data_vars:
-            ds['Conductivity'].attrs['long_name'] = 'sea_water_density'
-            ds['Conductivity'].attrs['standard_name'] = 'sea_water_density'
-            ds['Conductivity'].attrs['units'] = 'kg m-3'
-            ds['Conductivity'].attrs['cf_compliant'] = 1
-            self.associate_qc_flag('Density', 'Density')
+            ds['Density'].attrs['long_name'] = 'sea_water_density'
+            ds['Density'].attrs['standard_name'] = 'sea_water_density'
+            ds['Density'].attrs['units'] = 'kg m-3'
+            ds['Density'].attrs['cf_compliant'] = 1
+            if 'qc_variable' not in ds['Density'].attrs:
+                self.associate_qc_flag('Density', 'Density')
 
         for v in ['Salinity', 'Salinity2']:
             if v in ds.data_vars:
@@ -177,14 +210,16 @@ class SOLANDER_CTD(xrwrap.xrwrap):
                 ds[v].attrs['standard_name'] = 'sea_water_salinity'
                 ds[v].attrs['units'] = 'PSU'
                 ds[v].attrs['cf_compliant'] = 1
-                self.associate_qc_flag(v, v)
+                if 'qc_variable' not in ds[v].attrs:
+                    self.associate_qc_flag(v, v)
 
         if 'Depth' in ds.data_vars:
             ds['Depth'].attrs['long_name'] = 'pressure_sensor_depth_below_sea_surface'
             ds['Depth'].attrs['standard_name'] = 'pressure_sensor_depth_below_sea_surface'
             ds['Depth'].attrs['units'] = 'm'
             ds['Depth'].attrs['cf_compliant'] = 1
-            self.associate_qc_flag('Depth', 'Pressure')
+            if 'qc_variable' not in ds['Depth'].attrs:
+                self.associate_qc_flag('Depth', 'Pressure')
             
         for var in ds:
             if not 'cf_compliant' in ds[var].attrs:
