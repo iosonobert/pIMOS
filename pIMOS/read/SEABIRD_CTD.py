@@ -29,22 +29,22 @@ from pIMOS.utils import othertime
 from pIMOS.utils import seabird_utils
 import xarray as xr 
 
-def read(fullpath, edit=False):
+def read(fullpath, depth_name='depSM', edit=False):
     
     # Read CNV file
-    sbe = seabird_utils.CnvFile(fullpath, edit=edit)
+    sbe    = seabird_utils.CnvFile(fullpath, edit=edit)
 
     # Read CNV header
     header = read_cnv_header(fullpath)
 
     # Get units list
-    units = get_SBE_units(sbe)
+    units  = get_SBE_units(sbe)
 
     # Check and ammend bottle position array
-    sbe = check_bottle_array(sbe)
+    sbe    = check_bottle_array(sbe)
 
     # Convert SBE to xarray dataset
-    ds = sbe_to_dataset(sbe, header, units)
+    ds     = sbe_to_dataset(sbe, header, units, depth_name=depth_name)
     
     return ds
 
@@ -162,7 +162,7 @@ def check_bottle_array(sbe):
             
     return sbe
 
-def sbe_to_dataset(sbe, header, units):
+def sbe_to_dataset(sbe, header, units, depth_name='depSM'):
 
     '''Convert all arrays in an SBE class to arrays in a dataset, ds,
         with dimensions depSM and units specified by a list of unit strings
@@ -175,9 +175,9 @@ def sbe_to_dataset(sbe, header, units):
     ds = xr.Dataset()
 
     # Insert datenum variable first
-    V = xr.DataArray(time_series, dims=('depSM',), name='datenum',\
+    V = xr.DataArray(time_series, dims=(depth_name,), name='datenum',\
             attrs = {'units':'days since 1970-01-01', 'longname': 'Date number'},\
-            coords = {'depSM':sbe.array[:,sbe.names.index('depSM')].tolist()})
+            coords = {depth_name:sbe.array[:,sbe.names.index(depth_name)].tolist()})
 
     ds.update({'datenum':V})
 
@@ -190,10 +190,10 @@ def sbe_to_dataset(sbe, header, units):
         # Specify all variables with the dimension depth
         V = xr.DataArray( \
             sbe.array[:,ind], \
-            dims=('depSM',), \
+            dims=(depth_name,), \
             name=fields,\
             attrs = attrs,\
-            coords = {'depSM':sbe.array[:,sbe.names.index('depSM')].tolist()})
+            coords = {depth_name:sbe.array[:,sbe.names.index(depth_name)].tolist()})
 
         # Update dataset with new array           
         ds.update({str(fields):V})
