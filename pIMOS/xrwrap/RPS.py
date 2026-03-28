@@ -1,7 +1,7 @@
 import os
 import xarray as xr
 import numpy as np
-import pIMOS.xrwrap.xrwrap as xrwrap
+from pIMOS.utils.file import parse_infile
 
 import pIMOS.xrwrap.pimoswrap as pimoswrap
 from pIMOS.read import RPS as read_RPS
@@ -40,7 +40,7 @@ def from_nc(filename, trip=None, RPSvars=None, parse_times=True, verbose=True):
     '''
 
     # Filename checker
-    folder, file = xrwrap.parse_infile(filename, verbose=verbose)
+    folder, file = parse_infile(filename, verbose=verbose)
     fullpath = os.path.join(folder, file)
 
     # Call RPS reader

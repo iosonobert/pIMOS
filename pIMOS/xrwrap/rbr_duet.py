@@ -142,9 +142,7 @@ def from_netcdf(infile):
     Pass straight to the main xrwrap from_netcdf method.
     """
    
-    classhandler = RBR_DUET
-
-    rr, ds = pimoswrap._from_netcdf(infile, classhandler)
+    rr, ds = RBR_DUET.from_netcdf(infile)
     
     return rr, ds
 

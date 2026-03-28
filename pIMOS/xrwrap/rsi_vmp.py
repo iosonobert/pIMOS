@@ -1,7 +1,8 @@
 import sys, os, scipy.io
 import xarray as xr
 # import zutils.xrwrap as xrwrap
-import pIMOS.xrwrap.xrwrap as xrwrap
+from pIMOS.utils.file import parse_infile
+import pIMOS.xrwrap.pimoswrap as pimoswrap
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.io
@@ -17,7 +18,7 @@ def from_netcdf(infile):
     Pass straight to the main xrwrap load method.
     """
 
-    folder, file = xrwrap.parse_infile(infile)
+    folder, file = parse_infile(infile)
 
     ds = xr.open_dataset(os.path.join(folder, file))
 
@@ -110,7 +111,7 @@ def from_pfile(pfile, ini_file):
 ##########################
 # Actual xarray wrap #####
 ##########################
-class RSI_VMP(xrwrap.xrwrap):
+class RSI_VMP(pimoswrap.pimoswrap):
     """
     Accessor for the RSI VMP. 
     """

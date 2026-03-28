@@ -2,6 +2,24 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 
+
+def parse_infile(infile, verbose=True):
+    """
+    Take a string (folder/file), or 2 element sequence ([folder, file]), and
+    return (folder, file).
+    """
+
+    if type(infile) == str:
+        folder, file = os.path.split(infile)
+    elif type(infile) in [list, tuple]:
+        if len(infile) != 2:
+            raise Exception('The infile must be a string or a length 2 sequence')
+        folder, file = infile
+    else:
+        raise Exception('The infile must be a string or a length 2 sequence')
+
+    return folder, file
+
 def drop_extension(fullpath):
 
     path, file = os.path.split(fullpath)

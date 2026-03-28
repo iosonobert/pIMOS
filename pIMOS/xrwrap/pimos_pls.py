@@ -17,7 +17,7 @@ import pdb
 
 import importlib 
 
-import pIMOS.xrwrap.xrwrap as xrwrap
+import pIMOS.xrwrap.pimoswrap as pimoswrap
 # import zutils.stats as zstats
 # import zutils.file as zfile
 
@@ -25,9 +25,9 @@ font = {'weight' : 'normal',
         'size'   : 15}
 matplotlib.rc('font', **font)
 
-class PIMOS_PL0(xrwrap.xrwrap):
+class PIMOS_PL0(pimoswrap.pimoswrap):
 
-    parent_class = xrwrap.xrwrap
+    parent_class = pimoswrap.pimoswrap
     _default_attrs = parent_class._default_attrs.copy()
     _default_attrs['process_level'] = 'Process Level 0'
 

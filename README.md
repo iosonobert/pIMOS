@@ -192,9 +192,9 @@ pytest -m install -q
 
 This test is implemented in `tests/test_install_smoke.py`.
 
-## Runtime smoke tests [planned]
+## Runtime smoke tests [implemented]
 
-Runtime smoke tests are not implemented yet, but are recommended as a second test layer.
+Runtime smoke tests are implemented as a second test layer.
 
 Purpose:
 
@@ -206,17 +206,28 @@ Why this is separate:
 - Top-level imports can pull a large dependency chain.
 - A package can install correctly but still fail at runtime due to transitive import or API compatibility issues.
 
-Suggested runtime markers and usage:
+Runtime markers and usage:
 
 ```bash
 pytest -m runtime -q
 ```
 
-Suggested first runtime checks:
+This test is implemented in `tests/test_runtime_venv_smoke.py`.
+It creates a fresh temporary virtual environment, installs `pIMOS` from the local source tree, and runs runtime loader checks inside that clean environment.
 
-1. `import pIMOS`.
-2. Import selected critical submodules used in production.
-3. Execute one lightweight end-to-end operation on a tiny sample dataset.
+The current runtime loader checks are implemented in `tests/test_netcdf_class_loader.py`.
+
+You can run those loader checks directly in your current environment with:
+
+```bash
+pytest -q tests/test_netcdf_class_loader.py
+```
+
+Current runtime checks:
+
+1. Validate class-level `from_netcdf` loaders using synthetic NetCDF test data.
+2. Validate module-level `from_netcdf` entry points route correctly to class-level loaders.
+3. Run these checks inside a freshly created virtual environment.
 
 Suggested CI usage:
 

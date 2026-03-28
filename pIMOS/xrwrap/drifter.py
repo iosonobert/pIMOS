@@ -94,8 +94,7 @@ def from_netcdf(infile):
     """
     Pass straight to the main xrwrap from_netcdf method.
     """
-    classhandler = DRIFTER
-    rr, ds = xrwrap._from_netcdf(infile, classhandler)
+    rr, ds = DRIFTER.from_netcdf(infile)
     return rr, ds
 
 

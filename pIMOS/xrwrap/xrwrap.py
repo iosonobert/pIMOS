@@ -15,9 +15,11 @@ import matplotlib
 import datetime
 import os 
 import pdb 
+import warnings
 
 from pIMOS.utils import qc_conventions
 from pIMOS.utils import file as zfile
+from pIMOS.utils.file import parse_infile as _parse_infile_util
 
 default_attrs = {
     'title': '', 
@@ -59,20 +61,7 @@ def parse_infile(infile, verbose=True):
     """
     Take a string ( folder/file ), or 2 element list  ( [folder, file] ), and return the folder and file.
     """
-
-    if type(infile)==str:
-        # if verbose:
-        #     print('Infile is a string')
-        folder, file = os.path.split(infile)
-    elif type(infile) in [list, tuple]:
-        if not len(infile) == 2:
-            raise(Exception('The infile must be a string or a length 2 sequence'))
-        else:
-            folder, file = infile
-    else:
-        raise(Exception('The infile must be a string or a length 2 sequence'))
-        
-    return folder, file
+    return _parse_infile_util(infile, verbose=verbose)
     
 def _from_netcdf(infile, classhandler):
     """
@@ -83,17 +72,14 @@ def _from_netcdf(infile, classhandler):
         - classhandler - the xrwrap class to open the file
     """
    
+    if hasattr(classhandler, 'from_netcdf'):
+        return classhandler.from_netcdf(infile)
+
     folder, file = parse_infile(infile)
-
     ds = xr.open_dataset(os.path.join(folder, file))
-
-    ds.attrs['last_load_file_name']      = file
-    ds.attrs['last_load_directory']      = folder
-
-    # print(ds)
-    
+    ds.attrs['last_load_file_name'] = file
+    ds.attrs['last_load_directory'] = folder
     rr = classhandler(ds)
-
     return rr, ds
 
 class xrwrap():
@@ -123,6 +109,32 @@ class xrwrap():
     default_user = 'UWA'
 
     verbose = False
+
+    # Policy: ideally only pimoswrap should directly subclass xrwrap.
+    # Default is warning-only to avoid breaking existing legacy classes.
+    _strict_direct_subclass_policy = True
+    _allowed_direct_subclass_module = 'pIMOS.xrwrap.pimoswrap'
+    _allowed_direct_subclass_name = 'pimoswrap'
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+
+        # Only check direct subclasses of xrwrap.
+        if xrwrap in cls.__bases__:
+            is_allowed = (
+                cls.__module__ == xrwrap._allowed_direct_subclass_module
+                and cls.__name__ == xrwrap._allowed_direct_subclass_name
+            )
+
+            if not is_allowed:
+                msg = (
+                    f"Direct subclass '{cls.__module__}.{cls.__name__}' extends xrwrap. "
+                    f"Preferred pattern is to subclass "
+                    f"{xrwrap._allowed_direct_subclass_module}.{xrwrap._allowed_direct_subclass_name}."
+                )
+                if xrwrap._strict_direct_subclass_policy:
+                    raise TypeError(msg)
+                warnings.warn(msg, UserWarning, stacklevel=2)
 
     @property
     def _obj(self):

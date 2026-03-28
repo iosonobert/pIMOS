@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=80.9.0", "wheel", "setuptools_scm"]
+requires = ["setuptools>=80.9.0", "wheel", "setuptools_scm[toml]>=8"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -19,8 +19,6 @@ read = [
     "seabird",
     "afloat",
 ]
-
-[project.optional-dependencies]
 process = [
     "dolfyn==1.2.0",
     "turbo_lance",
@@ -28,14 +26,17 @@ process = [
     "d2spike"
 ]
 
-[tool.setuptools_scm]
-version_file = "pIMOS/_version.py"
-
 [tool.setuptools.packages.find]
 include = ["pIMOS", "pIMOS.*"]
 exclude = ["build", "dist", "notebooks", "make_gif", "postgres", "reporting", "source_py_code"]
 
+[tool.setuptools_scm]
+write_to = "pIMOS/_version.py"
+fallback_version = "1.1.2"
+local_scheme = "no-local-version"
+
 [tool.pytest.ini_options]
 markers = [
     "install: integration smoke test that creates a clean virtual environment and installs pIMOS",
+    "runtime: integration test that runs runtime smoke checks inside a fresh virtual environment",
 ]

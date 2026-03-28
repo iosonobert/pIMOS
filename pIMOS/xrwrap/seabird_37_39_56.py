@@ -74,10 +74,7 @@ def from_netcdf(infile):
     """
     Pass straight to the main pimoswrap from_netcdf method.
     """
-   
-    classhandler = SEABIRD_37_39_56
-
-    rr, ds = pimoswrap._from_netcdf(infile, classhandler)
+    rr, ds = SEABIRD_37_39_56.from_netcdf(infile)
     
     return rr, ds
 

@@ -16,6 +16,7 @@ import os
 import pdb
 
 import importlib 
+from pIMOS.utils.file import parse_infile
 
 # import zutils.xrwrap as xrwrap
 # import zutils.xrwrap as xrwrap
@@ -35,10 +36,43 @@ class pimoswrap(xrwrap.xrwrap):
     parent_class = xrwrap.xrwrap
     _default_attrs = parent_class._default_attrs.copy()
     _default_attrs['process_level'] = 'Process Level 0'
+    _default_attrs['pimos_nickname'] = 'pimoswrap'
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+
+        # Ensure every subclass has its own defaults dictionary and gets a
+        # deterministic nickname default based on its class name.
+        if hasattr(cls, '_default_attrs') and cls._default_attrs is not None:
+            cls._default_attrs = cls._default_attrs.copy()
+        else:
+            cls._default_attrs = cls.parent_class._default_attrs.copy()
+        cls._default_attrs['pimos_nickname'] = cls.__name__
 
     def __init__(self):
         print('pl0 init')
         print('Initialising {}'.format(self._default_attrs['process_level']))
+
+    @classmethod
+    def from_netcdf(cls, infile):
+        """Class-level loader for netCDF sources.
+
+        Returns
+        -------
+        rr : cls
+            Instantiated wrapper object.
+        ds : xarray.Dataset
+            Loaded dataset with load-location attrs updated.
+        """
+
+        folder, file = parse_infile(infile)
+        ds = xr.open_dataset(os.path.join(folder, file))
+
+        ds.attrs['last_load_file_name'] = file
+        ds.attrs['last_load_directory'] = folder
+
+        rr = cls(ds)
+        return rr, ds
         
     @property
     def _required_attrs(self):
@@ -48,7 +82,11 @@ class pimoswrap(xrwrap.xrwrap):
 
         process_level = self._default_attrs['process_level']
         if process_level in ['', 0, 1]:
-            _required_attrs = parent_class._required_attrs.copy()
+            _required_attrs = self.parent_class._required_attrs.copy()
+            if 'pimos_nickname' not in _required_attrs:
+                _required_attrs = dict.fromkeys(_required_attrs)
+                _required_attrs['pimos_nickname'] = self.__class__.__name__
+                _required_attrs = _required_attrs.keys()
         elif process_level in [2, 3, 4]:
             _required_attrs = _required_attrs = {
                                                     'title': '', 
@@ -73,7 +111,7 @@ class pimoswrap(xrwrap.xrwrap):
                                                     'nominal_site_depth': '',
                                                     'timezone': '',
                                                     'process_level': '',                         # This can be a default. Make it 1 when sure! 
-                                                    'pimos_nickname': 'no_nickname',                        # This is the nickname that will be used for archiving.  
+                                                    'pimos_nickname': self.__class__.__name__,             # Default nickname follows wrapper class name.
                                                     'is_profile_data': 0}.keys()
         else:
             raise(Exception("{} is not a valid process level. You've cooked it."))

@@ -6,7 +6,6 @@ Created on Mon Jul 30 15:17:42 2018
 
 import matplotlib.pyplot as plt
 import numpy as np
-import xarray as xr
 import pandas as pd
 from matplotlib.dates import num2date, date2num
 import matplotlib
@@ -17,7 +16,7 @@ import os
 # from seabird import cnv
 
 # import zutils.xrwrap as xrwrap
-import pIMOS.xrwrap.xrwrap as xrwrap
+import pIMOS.xrwrap.pimoswrap as pimoswrap
 import pIMOS.read.SEABIRD_CTD as read_sbdctd
 
 font = {'weight' : 'normal',
@@ -26,22 +25,10 @@ matplotlib.rc('font', **font)
 
 def from_netcdf(infile):
     """
-    Pass straight to the main xrwrap load method.
+    Pass straight to the class-level from_netcdf loader.
     """
-
-    folder, file = xrwrap.parse_infile(infile)
-
-    ds = xr.open_dataset(os.path.join(folder, file))
-
-    ds.attrs['last_load_file_name']      = file
-    ds.attrs['last_load_directory']      = folder
-
-    print(ds)
-    
-    rr = SOLANDER_CTD(ds)
-
+    rr, ds = SOLANDER_CTD.from_netcdf(infile)
     rr.add_variable_attributes()
-
     return rr, ds
 
 def from_cnvfile(filename, depth_name='depSM'):
@@ -61,7 +48,7 @@ def from_cnvfile(filename, depth_name='depSM'):
 ##########################
 # Actual xarray wrap #####
 ##########################
-class SOLANDER_CTD(xrwrap.xrwrap):
+class SOLANDER_CTD(pimoswrap.pimoswrap):
     
     class_attrs = {
             'title': 'Measured data from a profiling Seabird CTD',

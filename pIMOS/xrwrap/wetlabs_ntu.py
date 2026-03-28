@@ -18,7 +18,6 @@ import pdb
 import importlib 
 
 # import zutils.xrwrap as xrwrap
-import pIMOS.xrwrap.xrwrap as xrwrap
 import pIMOS.xrwrap.pimoswrap as pimoswrap
 import pIMOS.utils.file as zfile
 
@@ -69,10 +68,7 @@ def from_netcdf(infile):
     """
     Pass straight to the main xrwrap from_netcdf method.
     """
-   
-    classhandler = WETLABS_NTU
-
-    rr, ds = xrwrap._from_netcdf(infile, classhandler)
+    rr, ds = WETLABS_NTU.from_netcdf(infile)
     
     return rr, ds
 

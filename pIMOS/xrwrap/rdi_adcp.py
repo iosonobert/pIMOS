@@ -280,9 +280,7 @@ def from_netcdf(infile):
     Pass straight to the main xrwrap from_netcdf method.
     """
    
-    classhandler = RDI_ADCP_PD02
-
-    rr, ds = xrwrap._from_netcdf(infile, classhandler)
+    rr, ds = RDI_ADCP_PD02.from_netcdf(infile)
     
     return rr, ds
 
