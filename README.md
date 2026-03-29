@@ -136,6 +136,30 @@ Other repos exist for actual calculations, and these will be appropriately linke
 
 # Process Levels
 
+## Transect Stackers (Discrete vs Continuous)
+
+There are now two explicit PL2 transect stacker entry points so users can pick
+the right model for their data.
+
+1. Discrete/profile-style stacker:
+   - Module: pIMOS.xrwrap.pl2_stacked_transect_discrete
+   - Wrapper class: PL2_STACKED_TRANSECT_DISCRETE
+   - Primary constructor: from_fv01_archive_discrete (alias of the original slow profile stacker)
+   - Use this when each input file is effectively one profile/transect slice.
+
+2. Continuous Triaxus-style stacker:
+   - Module: pIMOS.xrwrap.pl2_stacked_transect_cont
+   - Wrapper class: PL2_STACKED_TRANSECT_CONT
+   - Primary constructor: from_rvpctd_continuous
+   - Grids to z-time with a regular time step (default 5 minutes), keeps data continuous,
+     and maps cumulative along-track distance onto the time grid.
+
+Notes:
+
+- The underlying implementation files are still kept as-is for flexibility and
+  backward compatibility.
+- The new *_discrete and *_cont module names are the preferred user-facing API.
+
 Another thing IMOS defines are [Process(ing) Levels](https://github.com/aodn/imos-toolbox/wiki/ProcessLevelsAndQC). In a nutshell, this is how much processing has been performed, and the levels are:
 
 - FV00 Raw Data

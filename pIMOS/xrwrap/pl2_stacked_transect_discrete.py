@@ -3,6 +3,14 @@
 Created on Mon Jul 30 15:17:42 2018
 
 @author: 20270917
+
+Legacy discrete/profile-style PL2 transect stacker.
+
+This module assumes quasi-discrete profiles (often one profile per file) and is
+kept for backward compatibility and profile-style workflows.
+
+Preferred user-facing import name:
+    pIMOS.xrwrap.pl2_stacked_transect_discrete
 """
 #%%
 import matplotlib.pyplot as plt

@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 """
 Continuous PL2 transect stacker for Triaxus-style profiling data.
+
+This module implements the continuous z-time stacker. Preferred user-facing
+import name:
+    pIMOS.xrwrap.pl2_stacked_transect_cont
 """
 
 import datetime
