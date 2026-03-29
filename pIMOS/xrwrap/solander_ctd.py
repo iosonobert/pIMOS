@@ -18,7 +18,7 @@ import scipy.signal as signal
 import pdb
 import datetime
 import os
-from seabird import cnv
+# from seabird import cnv
 
 # import zutils.xrwrap as xrwrap
 import pIMOS.xrwrap.xrwrap as xrwrap
