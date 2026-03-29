@@ -12,6 +12,7 @@ dependencies = [
     "pandas",
     "dolfyn>=1.2.0",
     "turbo_lance",
+    "d2spike==0.0.3",
 ]
 
 [tool.setuptools_scm]
