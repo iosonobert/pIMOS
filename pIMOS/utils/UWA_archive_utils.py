@@ -198,12 +198,39 @@ def pIMOS_get_archive_folder(archive_dir, file_version, pimos_version=None):
     Get the specific archive folder for the pIMOS version, and file process_level. 
     """
 
-    folder = os.path.join(archive_dir, 'pimos_v'+__version__)
+    if pimos_version is None:
+        resolved_version = __version__
+    else:
+        resolved_version = str(pimos_version).strip()
+        # Accept either "1.2.3", "v1.2.3", or "pimos_v1.2.3".
+        if resolved_version.lower().startswith('pimos_v'):
+            resolved_version = resolved_version[7:]
+        elif resolved_version.lower().startswith('v'):
+            resolved_version = resolved_version[1:]
+
+    folder = os.path.join(archive_dir, 'pimos_v' + resolved_version)
     if not os.path.exists(folder):
         os.mkdir(folder)
 
-    if type(file_version) is str:
-        file_version = 0
+    if isinstance(file_version, str):
+        fv_text = file_version.strip().lower()
+        if fv_text.startswith('process level'):
+            # Accept process-level strings like "Process Level 2".
+            parts = fv_text.split()
+            try:
+                file_version = int(parts[-1])
+            except Exception:
+                file_version = 0
+        elif fv_text.startswith('fv') and len(fv_text) > 2:
+            try:
+                file_version = int(fv_text[2:])
+            except Exception:
+                file_version = 0
+        else:
+            try:
+                file_version = int(fv_text)
+            except Exception:
+                file_version = 0
 
     fv = 'FV{:02.0f}'.format(file_version)
     folder = os.path.join(folder, fv)
@@ -212,9 +239,9 @@ def pIMOS_get_archive_folder(archive_dir, file_version, pimos_version=None):
 
     return folder
 
-def pIMOS_get_archive_folder_model(archive_dir, file_version, model):
+def pIMOS_get_archive_folder_model(archive_dir, file_version, model, pimos_version=None):
 
-    folder = pIMOS_get_archive_folder(archive_dir, file_version)
+    folder = pIMOS_get_archive_folder(archive_dir, file_version, pimos_version=pimos_version)
     
     folder = os.path.join(folder, model)
     if not os.path.exists(folder):
@@ -222,11 +249,16 @@ def pIMOS_get_archive_folder_model(archive_dir, file_version, model):
 
     return folder
 
-def pIMOS_get_my_export_folder(rr, archive_dir):
+def pIMOS_get_my_export_folder(rr, archive_dir, pimos_version=None):
 
     model        = rr.ds.attrs['pimos_nickname']
     file_version = rr.ds.attrs['process_level']
-    folder       = pIMOS_get_archive_folder_model(archive_dir, file_version, model)
+    folder       = pIMOS_get_archive_folder_model(
+        archive_dir,
+        file_version,
+        model,
+        pimos_version=pimos_version,
+    )
 
     return folder
 
@@ -251,7 +283,7 @@ def pIMOS_export(rr, archive_dir):
     # rr.folder = folder
     # rr.file_ = serial
     
-    rr.export( naming_method='convention', export_directory=folder)
+    rr.export(naming_method='convention', export_directory=folder)
 
 def row_to_attrs(row):
     """

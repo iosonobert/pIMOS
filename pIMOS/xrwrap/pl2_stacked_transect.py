@@ -37,6 +37,9 @@ matplotlib.rc('font', **font)
 
 class PL2_STACKED_TRANSECT(pimoswrap.pimoswrap):
 
+    _default_attrs = pimoswrap.pimoswrap._default_attrs.copy()
+    _default_attrs['process_level'] = 2
+
     def __init__(self, ds):
         print('Initialising accessor.')
         self.ds = ds # XRWRAP compatibility
@@ -45,7 +48,7 @@ class PL2_STACKED_TRANSECT(pimoswrap.pimoswrap):
 
         class_attrs = {
             'title': 'Transect made by stacking multipe files',
-            'source': 'pIMOS' 
+            'source': 'pIMOS',
         }
         self.enforce_these_attrs(class_attrs)
 

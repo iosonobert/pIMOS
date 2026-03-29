@@ -40,10 +40,12 @@ matplotlib.rc('font', **font)
 class_attrs = {
             'title': 'Mooring made by stacking multipe files',
             'source': 'pIMOS',
-            'process_level': 2 
         }
 
 class PL2_STACKED_MOORING(pimoswrap.pimoswrap):
+
+    _default_attrs = pimoswrap.pimoswrap._default_attrs.copy()
+    _default_attrs['process_level'] = 2
 
     def __init__(self, ds):
         print('Initialising accessor.')

@@ -16,7 +16,7 @@ except AttributeError:
     print('Need to update dolfyn to version 1')
     has_dolfyn = False
 
-import pIMOS.xrwrap.solander_ctd as solander_ctd
+import pIMOS.xrwrap.solander_ctd as rvlctd
 import pIMOS.xrwrap.lisst as lisst
 
 try:
@@ -27,7 +27,7 @@ except ImportError:
     print('pyODAS not found, not importing pIMOS.xrwrap.rsi_vmp')
     has_rsi_vmp = False
 
-import pIMOS.xrwrap.solander_ctd as solander_ctd
+import pIMOS.xrwrap.solander_ctd as rvlctd
 
 import pIMOS.utils.quality_control
 import pIMOS.utils.plot
@@ -39,7 +39,7 @@ from ._version import __version__
 
 classes = [
         seabird_37_39_56.SEABIRD_37_39_56,
-        solander_ctd.SOLANDER_CTD,
+        rvlctd.RVLCTD,
         wetlabs_ntu.WETLABS_NTU,
         lisst.LISST,
     ]
@@ -62,7 +62,7 @@ if has_rsi_vmp:
     classes.append(rsi_vmp.RSI_VMP)
     del rsi_vmp
 
-del solander_ctd
+del rvlctd
 
 def load_pimos_nc(filename):
     """

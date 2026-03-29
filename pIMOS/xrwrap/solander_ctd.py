@@ -27,7 +27,7 @@ def from_netcdf(infile):
     """
     Pass straight to the class-level from_netcdf loader.
     """
-    rr, ds = SOLANDER_CTD.from_netcdf(infile)
+    rr, ds = RVLCTD.from_netcdf(infile)
     rr.add_variable_attributes()
     return rr, ds
 
@@ -38,7 +38,7 @@ def from_cnvfile(filename, depth_name='depSM'):
     ds.attrs['raw_file_name']      = os.path.split(filename)[1]
     ds.attrs['raw_file_directory'] = os.path.split(filename)[0]
 
-    rr = SOLANDER_CTD(ds)
+    rr = RVLCTD(ds)
         
     # This is toward process level 1 stuff
     rr.add_variable_attributes()
@@ -48,11 +48,14 @@ def from_cnvfile(filename, depth_name='depSM'):
 ##########################
 # Actual xarray wrap #####
 ##########################
-class SOLANDER_CTD(pimoswrap.pimoswrap):
-    
+class RVLCTD(pimoswrap.pimoswrap):
+
+    _default_attrs = pimoswrap.pimoswrap._default_attrs.copy()
+    _default_attrs['is_profile_data'] = 1
+
     class_attrs = {
             'title': 'Measured data from a profiling Seabird CTD',
-            'source': 'pIMOS'
+            'source': 'pIMOS',
         }
 
     def __init__(self, ds):

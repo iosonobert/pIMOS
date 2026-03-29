@@ -277,6 +277,7 @@ python -c "import pIMOS; print(pIMOS.__version__)"
    pip install -e .
    python -c "import pIMOS; print(pIMOS.__version__)"   # should print 1.3.0
    ```
+   > **Note:** The editable install (`-e`) makes source code changes immediately available on import, but `_version.py` is only written by setuptools_scm at install time — it does not re-query git on every import. So you must re-run `pip install -e .` after creating a new tag for the version to update.
 
 If you need to build a distribution for PyPI:
 ```bash
