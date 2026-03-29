@@ -24,7 +24,7 @@ font = {'weight': 'normal', 'size': 15}
 matplotlib.rc('font', **font)
 
 
-class PL2_STACKED_TRANSECT2(pimoswrap.pimoswrap):
+class PL2_STACKED_TRANSECT_CONT(pimoswrap.pimoswrap):
 
     _default_attrs = pimoswrap.pimoswrap._default_attrs.copy()
     _default_attrs['process_level'] = 2
@@ -186,7 +186,7 @@ def from_rvpctd_continuous(files_or_datasets, stack_variables, znew, **kwargs):
             )
         })
 
-    rr = PL2_STACKED_TRANSECT2(ds_stacked)
+    rr = PL2_STACKED_TRANSECT_CONT(ds_stacked)
 
     attrs_that_must_be_equal = [
         'project',

@@ -43,7 +43,7 @@ font = {'weight' : 'normal',
         'size'   : 15}
 matplotlib.rc('font', **font)
 
-class PL2_STACKED_TRANSECT(pimoswrap.pimoswrap):
+class PL2_STACKED_TRANSECT_DISCRETE(pimoswrap.pimoswrap):
 
     _default_attrs = pimoswrap.pimoswrap._default_attrs.copy()
     _default_attrs['process_level'] = 2
@@ -280,7 +280,7 @@ def from_fv01_archive_slow(files, stack_variables, znew, **kwargs):
     #     )
     # ds_stacked.update({'source':V})
 
-    rr = PL2_STACKED_TRANSECT(ds_stacked)
+    rr = PL2_STACKED_TRANSECT_DISCRETE(ds_stacked)
 
     ####################
     ## ATTRIBUTE WORK ##
