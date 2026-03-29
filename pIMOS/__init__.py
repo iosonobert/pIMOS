@@ -18,6 +18,7 @@ except AttributeError:
 
 import pIMOS.xrwrap.rvlctd as rvlctd
 import pIMOS.xrwrap.rvpctd as rvpctd
+import pIMOS.xrwrap.pl2_stacked_transect2 as pl2_stacked_transect2
 import pIMOS.xrwrap.lisst as lisst
 
 try:
@@ -38,6 +39,7 @@ classes = [
         seabird_37_39_56.SEABIRD_37_39_56,
         rvlctd.RVLCTD,
         rvpctd.RVPCTD,
+        pl2_stacked_transect2.PL2_STACKED_TRANSECT2,
         wetlabs_ntu.WETLABS_NTU,
         lisst.LISST,
     ]
@@ -47,6 +49,7 @@ del wetlabs_ntu
 
 
 del lisst
+del pl2_stacked_transect2
 del rvpctd
 
 if has_dolfyn:
