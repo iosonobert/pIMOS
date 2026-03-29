@@ -29,7 +29,7 @@ from pIMOS.utils import othertime
 from pIMOS.utils import seabird_utils
 import xarray as xr 
 
-def read(fullpath, depth_name='depSM', edit=False):
+def read(fullpath, depth_name='depSM', depth_to_coord=True, edit=False):
     
     # Read CNV file
     sbe    = seabird_utils.CnvFile(fullpath, edit=edit)
@@ -44,7 +44,7 @@ def read(fullpath, depth_name='depSM', edit=False):
     sbe    = check_bottle_array(sbe)
 
     # Convert SBE to xarray dataset
-    ds     = sbe_to_dataset(sbe, header, units, depth_name=depth_name)
+    ds     = sbe_to_dataset(sbe, header, units, depth_name=depth_name, depth_to_coord=depth_to_coord)
     
     return ds
 
@@ -162,10 +162,14 @@ def check_bottle_array(sbe):
             
     return sbe
 
-def sbe_to_dataset(sbe, header, units, depth_name='depSM'):
+def sbe_to_dataset(sbe, header, units, depth_name='depSM', depth_to_coord=True):
 
-    '''Convert all arrays in an SBE class to arrays in a dataset, ds,
-        with dimensions depSM and units specified by a list of unit strings
+    '''Convert all arrays in an SBE class to arrays in a dataset, ds.
+
+    If depth_to_coord=True (default), depth is used as the dimension and
+    coordinate (original behaviour).  If depth_to_coord=False, an integer
+    index dimension ('obs') is used instead so that time can later be
+    promoted to the sole coordinate by the caller.
     '''
 
     # Create CTD timeseries
@@ -174,28 +178,42 @@ def sbe_to_dataset(sbe, header, units, depth_name='depSM'):
     # Build xarray of variables
     ds = xr.Dataset()
 
-    # Insert datenum variable first
-    V = xr.DataArray(time_series, dims=(depth_name,), name='datenum',\
-            attrs = {'units':'days since 1970-01-01', 'longname': 'Date number'},\
-            coords = {depth_name:sbe.array[:,sbe.names.index(depth_name)].tolist()})
+    if depth_to_coord:
+        depth_coord = sbe.array[:, sbe.names.index(depth_name)].tolist()
 
-    ds.update({'datenum':V})
+        # Insert datenum variable first
+        V = xr.DataArray(time_series, dims=(depth_name,), name='datenum',
+                attrs={'units': 'days since 1970-01-01', 'longname': 'Date number'},
+                coords={depth_name: depth_coord})
+        ds.update({'datenum': V})
 
-    # Loop through arrays in SBE
-    for ind, fields in enumerate(sbe.names):
-                
-        # Attributes spec with matching list of units
-        attrs = {'units':units[ind], 'longname':sbe.longnames[ind].strip()}
+        # Loop through arrays in SBE
+        for ind, fields in enumerate(sbe.names):
+            attrs = {'units': units[ind], 'longname': sbe.longnames[ind].strip()}
+            V = xr.DataArray(
+                sbe.array[:, ind],
+                dims=(depth_name,),
+                name=fields,
+                attrs=attrs,
+                coords={depth_name: depth_coord})
+            ds.update({str(fields): V})
 
-        # Specify all variables with the dimension depth
-        V = xr.DataArray( \
-            sbe.array[:,ind], \
-            dims=(depth_name,), \
-            name=fields,\
-            attrs = attrs,\
-            coords = {depth_name:sbe.array[:,sbe.names.index(depth_name)].tolist()})
+    else:
+        # Time-only convention: use a plain integer dimension so the caller
+        # can promote 'timeS' (or similar) to a coordinate.
+        dim = 'obs'
 
-        # Update dataset with new array           
-        ds.update({str(fields):V})
+        V = xr.DataArray(time_series, dims=(dim,), name='datenum',
+                attrs={'units': 'days since 1970-01-01', 'longname': 'Date number'})
+        ds.update({'datenum': V})
+
+        for ind, fields in enumerate(sbe.names):
+            attrs = {'units': units[ind], 'longname': sbe.longnames[ind].strip()}
+            V = xr.DataArray(
+                sbe.array[:, ind],
+                dims=(dim,),
+                name=fields,
+                attrs=attrs)
+            ds.update({str(fields): V})
 
     return ds
