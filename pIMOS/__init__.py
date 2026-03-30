@@ -16,7 +16,10 @@ except AttributeError:
     print('Need to update dolfyn to version 1')
     has_dolfyn = False
 
-import pIMOS.xrwrap.solander_ctd as rvlctd
+import pIMOS.xrwrap.rvlctd as rvlctd
+import pIMOS.xrwrap.rvpctd as rvpctd
+import pIMOS.xrwrap.pl2_stacked_transect_discrete as pl2_stacked_transect_discrete
+import pIMOS.xrwrap.pl2_stacked_transect_cont as pl2_stacked_transect_cont
 import pIMOS.xrwrap.lisst as lisst
 
 try:
@@ -27,19 +30,18 @@ except ImportError:
     print('pyODAS not found, not importing pIMOS.xrwrap.rsi_vmp')
     has_rsi_vmp = False
 
-import pIMOS.xrwrap.solander_ctd as rvlctd
-
 import pIMOS.utils.quality_control
 import pIMOS.utils.plot
 import pIMOS.utils.modify
-
-from ._version import __version__
 
 # import pIMOS.xrwrap.pimoswrap as pimoswrap 
 
 classes = [
         seabird_37_39_56.SEABIRD_37_39_56,
         rvlctd.RVLCTD,
+        rvpctd.RVPCTD,
+        pl2_stacked_transect_discrete.PL2_STACKED_TRANSECT_DISCRETE,
+        pl2_stacked_transect_cont.PL2_STACKED_TRANSECT_CONT,
         wetlabs_ntu.WETLABS_NTU,
         lisst.LISST,
     ]
@@ -49,6 +51,9 @@ del wetlabs_ntu
 
 
 del lisst
+del pl2_stacked_transect_discrete
+del pl2_stacked_transect_cont
+del rvpctd
 
 if has_dolfyn:
     classes.append(nortek_vector.NORTEK_VECTOR)

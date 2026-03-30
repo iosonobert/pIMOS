@@ -7,14 +7,18 @@ import pIMOS.xrwrap.nortek_vector as nortek_vector
 import pIMOS.xrwrap.lisst as lisst
 import pIMOS.xrwrap.rdi_adcp as rdi_adcp
 import pIMOS.xrwrap.rsi_vmp as rsi_vmp
-import pIMOS.xrwrap.solander_ctd as solander_ctd
+import pIMOS.xrwrap.rvlctd as rvlctd
+import pIMOS.xrwrap.pl2_stacked_transect_discrete as pl2_stacked_transect_discrete
+import pIMOS.xrwrap.pl2_stacked_transect_cont as pl2_stacked_transect_cont
 
 import pIMOS.xrwrap.pimoswrap as pimoswrap 
 
 classes = [
         seabird_37_39_56.SEABIRD_37_39_56,
         rsi_vmp.RSI_VMP,
-        solander_ctd.SOLANDER_CTD,
+        rvlctd.RVLCTD,
+        pl2_stacked_transect_discrete.PL2_STACKED_TRANSECT_DISCRETE,
+        pl2_stacked_transect_cont.PL2_STACKED_TRANSECT_CONT,
         rdi_adcp.RDI_ADCP_PD02,
         wetlabs_ntu.WETLABS_NTU,
         lisst.LISST,
