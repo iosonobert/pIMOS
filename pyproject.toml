@@ -6,8 +6,8 @@ build-backend = "setuptools.build_meta"
 name = "pIMOS"
 dynamic = ["version"]
 dependencies = [
-    "numpy>=1.24.2",
-    "scipy",
+    "numpy==1.26",
+    "scipy==1.13",
     "matplotlib",
     "xarray",
     "pandas",
