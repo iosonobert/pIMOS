@@ -325,10 +325,40 @@ class CnvFile(object):
                     data = data.astype(float)
                     data[:, i_timeQ] = t
             else:
-                strdata = _databytes.decode('ascii')
-                data = np.fromstring(strdata,
-                                     sep=' ', dtype='f8')
-                data.shape = (-1, self.nfields)
+                strdata = _databytes.decode('ascii', errors='replace')
+                data = np.fromstring(strdata, sep=' ', dtype='f8')
+
+                # Fast path for clean files; fallback to per-line parsing when
+                # tokenisation has been disrupted by corrupted values.
+                if data.size % self.nfields == 0:
+                    data.shape = (-1, self.nfields)
+                else:
+                    rows = []
+                    bad_line_count = 0
+
+                    for line in strdata.splitlines():
+                        stripped = line.strip()
+                        if not stripped:
+                            continue
+
+                        parts = stripped.split()
+                        if len(parts) != self.nfields:
+                            bad_line_count += 1
+                            continue
+
+                        try:
+                            rows.append([float(p) for p in parts])
+                        except ValueError:
+                            bad_line_count += 1
+
+                    if not rows:
+                        raise ValueError(
+                            "No valid ASCII CNV data rows could be parsed. "
+                            "The file may be corrupted or nquan may be wrong."
+                        )
+
+                    data = np.asarray(rows, dtype='f8')
+                    self.attributes['bad_data_rows_skipped'] = str(bad_line_count)
 
             if self.edit:
                 scan = data[:,0]

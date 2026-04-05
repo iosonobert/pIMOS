@@ -275,9 +275,9 @@ def pIMOS_get_my_export_folder(rr, archive_dir, pimos_version=None):
     
 #     rr.export( naming_method='convention', export_directory=folder)
 
-def pIMOS_export(rr, archive_dir):
+def pIMOS_export(rr, archive_dir, pimos_version=None):
 
-    folder = pIMOS_get_my_export_folder(rr, archive_dir)
+    folder = pIMOS_get_my_export_folder(rr, archive_dir, pimos_version=pimos_version)
     print(folder)
 
     # rr.folder = folder
