@@ -3,6 +3,14 @@
 Created on Mon Jul 30 15:17:42 2018
 
 @author: 20270917
+
+Legacy discrete/profile-style PL2 transect stacker.
+
+This module assumes quasi-discrete profiles (often one profile per file) and is
+kept for backward compatibility and profile-style workflows.
+
+Preferred user-facing import name:
+    pIMOS.xrwrap.pl2_stacked_transect_discrete
 """
 #%%
 import matplotlib.pyplot as plt
@@ -35,7 +43,7 @@ font = {'weight' : 'normal',
         'size'   : 15}
 matplotlib.rc('font', **font)
 
-class PL2_STACKED_TRANSECT(pimoswrap.pimoswrap):
+class PL2_STACKED_TRANSECT_DISCRETE(pimoswrap.pimoswrap):
 
     _default_attrs = pimoswrap.pimoswrap._default_attrs.copy()
     _default_attrs['process_level'] = 2
@@ -272,7 +280,7 @@ def from_fv01_archive_slow(files, stack_variables, znew, **kwargs):
     #     )
     # ds_stacked.update({'source':V})
 
-    rr = PL2_STACKED_TRANSECT(ds_stacked)
+    rr = PL2_STACKED_TRANSECT_DISCRETE(ds_stacked)
 
     ####################
     ## ATTRIBUTE WORK ##
