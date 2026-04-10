@@ -288,6 +288,10 @@ python -m build
 
 The built artifact will carry the exact version string from the tag.
 
+## Branch protection
+
+There is an online rule in github.com to prevent pushing to master. You'll need to make a branch.  
+
 # Known Issues
 
 Making a list here rather than using the issues register in case I need to kill this repo and recreate. 
