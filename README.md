@@ -316,6 +316,8 @@ The built artifact will carry the exact version string from the tag.
 
 There is an online rule in github.com to prevent pushing to master. You'll need to make a branch.  
 
+**NO BYPASS FOR ADMINISTRATORS
+
 # Known Issues
 
 Making a list here rather than using the issues register in case I need to kill this repo and recreate. 
