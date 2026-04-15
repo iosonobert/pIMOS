@@ -17,7 +17,7 @@ def _make_minimal_netcdf(path):
 
 
 def test_wetlabs_classmethod_from_netcdf(tmp_path):
-    wetlabs_mod = pytest.importorskip("pIMOS.xrwrap.wetlabs_ntu")
+    wetlabs_mod = pytest.importorskip("pIMOS._private_wrappers.wetlabs_ntu")
     WETLABS_NTU = wetlabs_mod.WETLABS_NTU
 
     nc_path = tmp_path / "wetlabs_test.nc"
@@ -34,7 +34,7 @@ def test_wetlabs_classmethod_from_netcdf(tmp_path):
 
 
 def test_wetlabs_module_loader_routes_to_classmethod(tmp_path):
-    wetlabs_mod = pytest.importorskip("pIMOS.xrwrap.wetlabs_ntu")
+    wetlabs_mod = pytest.importorskip("pIMOS._private_wrappers.wetlabs_ntu")
     WETLABS_NTU = wetlabs_mod.WETLABS_NTU
     wetlabs_from_netcdf = wetlabs_mod.from_netcdf
 

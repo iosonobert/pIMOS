@@ -3,7 +3,7 @@ import xarray as xr
 import numpy as np
 from pIMOS.utils.file import parse_infile
 
-import pIMOS.xrwrap.pimoswrap as pimoswrap
+import pIMOS._private_wrappers.pimoswrap as pimoswrap
 from pIMOS.read import RPS as read_RPS
 import matplotlib.pyplot as plt
 from afloat.currents import sd_to_uv

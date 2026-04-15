@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-import pIMOS.xrwrap.drifter as drifter
+import pIMOS._private_wrappers.drifter as drifter
 import pIMOS.utils.UWA_archive_utils as ai 
 
 

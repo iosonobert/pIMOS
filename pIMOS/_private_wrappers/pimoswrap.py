@@ -20,7 +20,7 @@ from pIMOS.utils.file import parse_infile
 
 # import zutils.xrwrap as xrwrap
 # import zutils.xrwrap as xrwrap
-import pIMOS.xrwrap.xrwrap as xrwrap
+import pIMOS._private_wrappers.xrwrap as xrwrap
 # import zutils.stats as zstats
 # import zutils.file as zfile
 
@@ -52,6 +52,40 @@ class pimoswrap(xrwrap.xrwrap):
     def __init__(self):
         print('pl0 init')
         print('Initialising {}'.format(self._default_attrs['process_level']))
+
+    @classmethod
+    def blank(cls, process_level, attrs=None, verbose=False):
+        """Create a wrapper instance backed by an empty in-memory Dataset.
+
+        This is useful for filename generation or metadata workflows where no
+        source file has been loaded yet.
+        """
+
+        rr = cls.__new__(cls)
+        rr.verbose = verbose
+
+        ds = xr.Dataset()
+        ds.attrs = cls._default_attrs.copy()
+        rr.ds = ds
+
+        if isinstance(process_level, str):
+            pl_text = process_level.strip().lower()
+            if pl_text.startswith('process level'):
+                process_level = pl_text.split()[-1]
+
+        try:
+            process_level_int = int(process_level)
+        except Exception as error:
+            raise ValueError(
+                "process_level must be an integer or 'Process Level N' string."
+            ) from error
+
+        rr.update_attribute('process_level', 'Process Level {}'.format(process_level_int))
+
+        if attrs:
+            rr.update_attributes_with_dict(attrs)
+
+        return rr
 
     @classmethod
     def from_netcdf(cls, infile):
@@ -87,6 +121,7 @@ class pimoswrap(xrwrap.xrwrap):
                 _required_attrs = dict.fromkeys(_required_attrs)
                 _required_attrs['pimos_nickname'] = self.__class__.__name__
                 _required_attrs = _required_attrs.keys()
+                
         elif process_level in [2, 3, 4]:
             _required_attrs = _required_attrs = {
                                                     'title': '', 
