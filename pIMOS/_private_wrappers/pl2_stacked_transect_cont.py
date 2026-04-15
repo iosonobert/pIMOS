@@ -4,7 +4,7 @@ Continuous PL2 transect stacker for Triaxus-style profiling data.
 
 This module implements the continuous z-time stacker. Preferred user-facing
 import name:
-    pIMOS.xrwrap.pl2_stacked_transect_cont
+    pIMOS._private_wrappers.pl2_stacked_transect_cont
 """
 
 import datetime
@@ -18,7 +18,7 @@ import scipy.interpolate as interpolate
 from scipy.spatial import QhullError
 import xarray as xr
 
-import pIMOS.xrwrap.pimoswrap as pimoswrap
+import pIMOS._private_wrappers.pimoswrap as pimoswrap
 
 font = {'weight': 'normal', 'size': 15}
 matplotlib.rc('font', **font)

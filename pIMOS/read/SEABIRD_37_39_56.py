@@ -30,13 +30,15 @@ from pIMOS.utils import seabird_utils
 ##########
 sbdvars = {'Conductivity':
     	    {'units':'S/m','long_name':'seawater conductivity'},
-    	'Temperature':
+    	   'Temperature':
     	    {'units':'degC','long_name':'seawater temperature'},
-    	'Pressure':
+    	   'Pressure':
     	    {'units':'decibars','long_name':'pressure'},	
+           'Depth':
+    	    {'units':'m','long_name':'depth'},	
          }
 
-def parse_seabird_cnv(cnvfile, basetime=None, jdate_bug_fix=False):
+def parse_seabird_cnv(cnvfile, basetime=None, jdate_bug_fix=False, verbose=False):
     """
      Read a seabird cnv file and return a dictionary with each variable
      as a mypandas.TimeSeries class
@@ -153,16 +155,17 @@ def parse_seabird_cnv(cnvfile, basetime=None, jdate_bug_fix=False):
         else:
             print(var + ' no in varlookup.')
 
-    print(ds)
+    if verbose: 
+        print(ds)
 
-    # Added this check in 2020. Not actually sure it should always hold. 
-    # assert(np.datetime64(sb.datetime) == ds.time.values[0])
-    if not np.datetime64(sb.datetime) == ds.time.values[0]:
-        print('sb.datetime is ' + str(sb.datetime))
-        print('ds.time.values[0] is ' + str(ds.time.values[0]))
-        [print('     Whooooooooaaaaaaa') for i in np.arange(10)]
+        # Added this check in 2020. Not actually sure it should always hold. 
+        # assert(np.datetime64(sb.datetime) == ds.time.values[0])
+        if not np.datetime64(sb.datetime) == ds.time.values[0]:
+            print('sb.datetime is ' + str(sb.datetime))
+            print('ds.time.values[0] is ' + str(ds.time.values[0]))
+            [print('     Whooooooooaaaaaaa') for i in np.arange(10)]
 
-    return ds
+    return ds, sb
 
 def parse_seabird_asc(filename):
     """

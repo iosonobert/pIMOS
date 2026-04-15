@@ -16,12 +16,12 @@ import os
 # import pdb
 import importlib 
 
-import pIMOS.xrwrap.pimoswrap as pimoswrap
+import pIMOS._private_wrappers.pimoswrap as pimoswrap
 
 # import zutils.xrwrap as xrwrap
 # import zutils.file as zfile
 # import zutils.stats as zstats
-# import pIMOS.xrwrap.xrwrap as xrwrap
+# import pIMOS._private_wrappers.xrwrap as xrwrap
 # import pIMOS.utils.file as zfile
 
 font = {'weight' : 'normal',

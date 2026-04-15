@@ -5,7 +5,13 @@ Process RDI adcp data using dolfyn (lkilcher.github.io/dolfyn/)
 """
 
 #from dolfyn.adp import api
-from dolfyn.io import rdi
+try:
+    from dolfyn.io import rdi
+except (ImportError, AttributeError):
+    raise ImportError(
+        "pIMOS.wrappers.rdi_adcp requires the 'dolfyn' package.\n"
+        "Install it with:  pip install dolfyn"
+    )
 #from dolfyn.adp import rotate
 
 # AZ commenting these out because cython is a pain. 
@@ -21,8 +27,8 @@ from scipy.interpolate import interp1d
 
 from matplotlib.dates import num2date, date2num
 # import zutils.xrwrap as xrwrap
-import pIMOS.xrwrap.xrwrap as xrwrap
-import pIMOS.xrwrap.pimoswrap as pimoswrap
+import pIMOS._private_wrappers.xrwrap as xrwrap
+import pIMOS._private_wrappers.pimoswrap as pimoswrap
 
 # import zutils.time as ztime
 import afloat.time as ztime

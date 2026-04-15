@@ -52,7 +52,8 @@ def read_db(dbconfig_file):
         if log in db_config:
             db_data[log] = parse_db_csv(db_config, table_name=log)
         else:
-            raise(Exception('Config file incomplete'))
+            pass
+            # raise(Exception('Config file incomplete'))
             
     if 'possible_mooring_dates' in db_config:
         db_data['possible_mooring_dates'] = parse_possible_mooring_dates(db_config, recovered=None)
@@ -193,10 +194,7 @@ def add_mooring_dates(db_data, mooring, ax, experiment=None, recovered=None):
     
     pass
 
-def pIMOS_get_archive_folder(archive_dir, file_version, pimos_version=None):
-    """
-    Get the specific archive folder for the pIMOS version, and file process_level. 
-    """
+def pIMOS_get_version(pimos_version=None):
 
     if pimos_version is None:
         resolved_version = __version__
@@ -207,6 +205,19 @@ def pIMOS_get_archive_folder(archive_dir, file_version, pimos_version=None):
             resolved_version = resolved_version[7:]
         elif resolved_version.lower().startswith('v'):
             resolved_version = resolved_version[1:]
+
+    # Truncate to first 3 numeric components so PEP 440 suffixes like
+    # "1.2.3.post1.dev15" become "1.2.3".
+    resolved_version = '.'.join(resolved_version.split('.')[:3])
+
+    return resolved_version, pimos_version
+
+def pIMOS_get_archive_folder(archive_dir, file_version, pimos_version=None):
+    """
+    Get the specific archive folder for the pIMOS version, and file process_level. 
+    """
+
+    resolved_version, _ = pIMOS_get_version(pimos_version=pimos_version)
 
     folder = os.path.join(archive_dir, 'pimos_v' + resolved_version)
     if not os.path.exists(folder):

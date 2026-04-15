@@ -16,7 +16,7 @@ import os
 # from seabird import cnv
 
 # import zutils.xrwrap as xrwrap
-import pIMOS.xrwrap.pimoswrap as pimoswrap
+import pIMOS._private_wrappers.pimoswrap as pimoswrap
 import pIMOS.read.SEABIRD_CTD as read_sbdctd
 
 font = {'weight' : 'normal',

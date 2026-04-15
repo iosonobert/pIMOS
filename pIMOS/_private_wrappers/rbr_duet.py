@@ -23,8 +23,8 @@ import os
 # import zutils.xrwrap as xrwrap
 from pyrsktools import RSK
 
-# import pIMOS.xrwrap.xrwrap as xrwrap
-import pIMOS.xrwrap.pimoswrap as pimoswrap 
+# import pIMOS._private_wrappers.xrwrap as xrwrap
+import pIMOS._private_wrappers.pimoswrap as pimoswrap 
 
 font = {'weight' : 'normal',
         'size'   : 12}

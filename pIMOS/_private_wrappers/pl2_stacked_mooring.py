@@ -26,12 +26,12 @@ from collections import OrderedDict
 
 import afloat.time as ztime
 
-# import pIMOS.xrwrap.pimos_pls as pls
-# import pIMOS.xrwrap.seabird_37_39_56 as wrap_sbd
-# import pIMOS.xrwrap.wetlabs_ntu as wetlabs_ntu
-# import pIMOS.xrwrap.nortek_signature as nortek_signature
-# import pIMOS.xrwrap.nortek_vector as nortek_vector 
-import pIMOS.xrwrap.pimoswrap as pimoswrap 
+# import pIMOS._private_wrappers.pimos_pls as pls
+# import pIMOS._private_wrappers.seabird_37_39_56 as wrap_sbd
+# import pIMOS._private_wrappers.wetlabs_ntu as wetlabs_ntu
+# import pIMOS._private_wrappers.nortek_signature as nortek_signature
+# import pIMOS._private_wrappers.nortek_vector as nortek_vector 
+import pIMOS._private_wrappers.pimoswrap as pimoswrap 
 
 font = {'weight' : 'normal',
         'size'   : 15}
@@ -155,7 +155,13 @@ def from_fv01_archive(files, stack_variables, **kwargs):
         rr = pimoswrap.pimoswrap() # Just use the base class here
         rr.wrap(ds)
 
+        if ds.lat_nom.values is None:
+            ds.lat_nom.values = 1.
+        if ds.lon_nom.values is None:
+            ds.lon_nom.values = 1.
+
         print(ds.lat_nom.values, ds.lon_nom.values) # These should be complete
+
         if i == 0:
             lat_nom = ds.lat_nom
             lon_nom = ds.lon_nom

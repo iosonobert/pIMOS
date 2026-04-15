@@ -11,7 +11,13 @@ import matplotlib.pyplot as plt
 import importlib
 import datetime
 import numpy as np
-import dolfyn as dlfn
+try:
+    import dolfyn as dlfn
+except (ImportError, AttributeError):
+    raise ImportError(
+        "pIMOS.wrappers.nortek_signature requires the 'dolfyn' package.\n"
+        "Install it with:  pip install dolfyn"
+    )
 
 from os import listdir
 import os
@@ -19,8 +25,8 @@ import os
 from afloat.time import num2date_lk as num2date_lk
 
 # import zutils.xrwrap as xrwrap
-# import pIMOS.xrwrap.xrwrap as xrwrap
-import pIMOS.xrwrap.pimoswrap as pimoswrap 
+# import pIMOS._private_wrappers.xrwrap as xrwrap
+import pIMOS._private_wrappers.pimoswrap as pimoswrap 
 from pIMOS.utils.nortek_signature_utils import beam2inst, inst2earth
 
 # import turbo_lance

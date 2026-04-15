@@ -14,15 +14,17 @@ import matplotlib.pyplot as plt
 ########### Would need to add this to requirements ############
 import pyproj as pp
 
-import pIMOS.xrwrap.pimoswrap as xrwrap
+import pIMOS._private_wrappers.pimoswrap as xrwrap
 import pIMOS.utils.UWA_archive_utils as ai 
 
 try:
     from d2spike.despike_GN import qc0_Flags
     from d2spike.despike import D2spikearray
-except:
-    print('d2spike not available !!!')
-    pass
+except ImportError as _d2spike_err:
+    raise ImportError(
+        "pIMOS.wrappers.drifter requires the 'd2spike' package.\n"
+        "Install d2spike to enable drifter despiking workflows."
+    ) from _d2spike_err
 
 class_attrs = {
             'title': 'GPS position data from a drifter',

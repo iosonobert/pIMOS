@@ -1,78 +1,74 @@
-import xarray as xr, warnings
+"""
+pIMOS API
 
-import pIMOS.xrwrap.seabird_37_39_56 as seabird_37_39_56
-import pIMOS.xrwrap.wetlabs_ntu as wetlabs_ntu
-import pIMOS.xrwrap.nortek_signature as nortek_signature
-import pIMOS.xrwrap.nortek_vector as nortek_vector
-import pIMOS.xrwrap.lisst as lisst
-import pIMOS.xrwrap.rdi_adcp as rdi_adcp
-import pIMOS.xrwrap.rsi_vmp as rsi_vmp
-import pIMOS.xrwrap.rvlctd as rvlctd
-import pIMOS.xrwrap.pl2_stacked_transect_discrete as pl2_stacked_transect_discrete
-import pIMOS.xrwrap.pl2_stacked_transect_cont as pl2_stacked_transect_cont
+Single source of truth for load_pimos_nc and wrap_pymos_ds.
 
-import pIMOS.xrwrap.pimoswrap as pimoswrap 
+The `classes` list is injected by pIMOS/__init__.py after it has resolved all
+optional dependencies.  Nothing in this module imports pIMOS instrument modules
+directly, so missing optional dependencies do not affect users who only need
+the loader functions.
+"""
+import xarray as xr
+import warnings
 
-classes = [
-        seabird_37_39_56.SEABIRD_37_39_56,
-        rsi_vmp.RSI_VMP,
-        rvlctd.RVLCTD,
-        pl2_stacked_transect_discrete.PL2_STACKED_TRANSECT_DISCRETE,
-        pl2_stacked_transect_cont.PL2_STACKED_TRANSECT_CONT,
-        rdi_adcp.RDI_ADCP_PD02,
-        wetlabs_ntu.WETLABS_NTU,
-        lisst.LISST,
-        nortek_vector.NORTEK_VECTOR,
-        nortek_signature.NORTEK_SIGNATURE
-    ]
+# Populated by pIMOS/__init__.py after optional imports are resolved.
+classes = []
+
 
 def load_pimos_nc(filename):
     """
-    This will load an nc and retuer a wrapped nc. Does so by looping through all wrappers to find the right one based on the title.   
-    
-    Inputs:
-        filename: fullpath to pimos netcdf file
-    """
-    
-    if type(filename) is list:
-        ds = xr.open_mfdataset(filename)   
-        print('Opened {}'.format('multtfile dataset')) 
-        ds.attrs['outfile_append'] = '' # THis should be cleared for mf datasets
+    Load a pIMOS netCDF file and return the appropriate wrapped dataset.
 
+    Parameters
+    ----------
+    filename : str or list of str
+        Path(s) to pIMOS netCDF file(s).
+    """
+    if isinstance(filename, list):
+        ds = xr.open_mfdataset(filename)
+        print('Opened multifile dataset')
+        ds.attrs['outfile_append'] = ''  # cleared for mf datasets
     else:
         ds = xr.open_dataset(filename)
-        print('Opened {}'.format(filename)) 
+        print('Opened {}'.format(filename))
     return wrap_pymos_ds(ds)
-    
+
+
 def wrap_pymos_ds(ds):
     """
-    This will load an nc and retuer a wrapped nc. Does so by looping through all wrappers to find the right one based on the title.   
-    
-    Inputs:
-        ds: pymos xarray dataset
+    Wrap a raw xarray Dataset in the matching pIMOS instrument class.
+
+    Parameters
+    ----------
+    ds : xarray.Dataset
+        A dataset previously written by pIMOS (must have 'title' and 'source'
+        attributes).
     """
-    
-    if not 'title' in ds.attrs:
-        raise(Exception('File has no title, not a pIMOS file'))
-    if not 'source' in ds.attrs:
-        raise(Exception('File has no source, not a pIMOS file'))
+    if 'title' not in ds.attrs:
+        raise Exception('File has no title attribute — not a pIMOS file')
+    if 'source' not in ds.attrs:
+        raise Exception('File has no source attribute — not a pIMOS file')
 
     title = ds.attrs['title']
     source = ds.attrs['source']
-    print('   Title is "{}"'.format(ds.attrs['title'])) 
-    print('   Source is "{}"'.format(ds.attrs['source'])) 
-    
-    if not source == 'pIMOS':
-        warnings.warn('Source should be pIMOS. Setting tp pIMOS and warning for now, will become an error in future.')
+    print('   Title  : "{}"'.format(title))
+    print('   Source : "{}"'.format(source))
+
+    if source != 'pIMOS':
+        warnings.warn(
+            'Source should be "pIMOS". Setting to "pIMOS" for now; '
+            'this will become an error in a future release.'
+        )
         ds.attrs['source'] = 'pIMOS'
-    
+
     for c in classes:
-        print(c.class_attrs['title'])
         if c.class_attrs['title'] == title:
-            print('Dataset appears to be a {}'.format(c))
+            print('Dataset matches {}'.format(c))
             return c(ds)
-        
-    st = ' | '.join(['{}'.format(c) for c in classes])
-    
-    raise(Exception('File does not match any pIMOS dataset [Options are: {}] [could return generic here instead of error.]'.format(st)))
+
+    options = ' | '.join(str(c) for c in classes)
+    raise Exception(
+        'File title "{}" does not match any registered pIMOS class. '
+        'Available classes: [{}]'.format(title, options)
+    )
         

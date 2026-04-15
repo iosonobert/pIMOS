@@ -13,9 +13,10 @@ import numpy as np
 import xarray as xr
 import matplotlib
 import gsw
-# import afloat.time as ztime
-import pIMOS.xrwrap.pimoswrap as pimoswrap 
-from iwaves.utils.fitting import fit_bmodes_linear
+import afloat.time as ztime
+import pIMOS._private_wrappers.pimoswrap as pimoswrap 
+if False: # Comment this out until importing is fixed
+    from iwaves.utils.fitting import fit_bmodes_linear
 # from iwaves.utils.density import fit_rho, single_tanh_rho, double_tanh_rho_new
 
 
@@ -75,11 +76,38 @@ class PL3_STACKED_MOORING(pimoswrap.pimoswrap):
         #     add flags
         #     short term harmonic fit
 
-    def knockdown_correct(self):
+    def knockdown_correct(self, bottom_time, bottom_pressure, bottom_hasb, pressure_var='Pressure'):
         """
-        SHOULD BE DONE AT LEVEL 2.
+        Apply bottom correction based on another input pressure series. 
+
+        Ignores pressure differences due to anything except BT. 
+
+        Inputs:
+            bottom_time:     Time for the bottom pressure series
+            bottom_pressure: Pressure for the bottom pressure series [dB]
+            bottom_hasb:     Height above bed for the bottom pressure series [m]
         """
-        raise(Exception)
+    
+        rr = self
+
+        time_secs = ztime.seconds_since(rr.ds.time.values)
+        bottom_time_secs = ztime.seconds_since(bottom_time)
+        
+        bottom_pressure_interp = np.interp(time_secs, bottom_time_secs, bottom_pressure)
+        
+        some_pressure = ~np.all(np.isnan(rr.ds[pressure_var].values), axis=1)
+        highest_P_z = max(rr.ds.z_nom[some_pressure].values)
+        highest_P_i = np.where(rr.ds.z_nom == highest_P_z)[0][0]
+        highest_P = rr.ds[pressure_var][highest_P_i, :]
+
+        pressure_diff = bottom_pressure_interp-highest_P.values
+        pressure_diff_nom = highest_P_z-rr.attrs['nominal_site_depth']-bottom_hasb
+        
+        pressure_diff_rel = pressure_diff/pressure_diff_nom
+        
+        hasb = rr.ds.z_nom-rr.attrs['nominal_site_depth']
+        z_hat = hasb.values[:, None]*pressure_diff_rel + rr.attrs['nominal_site_depth']
+        rr.ds['z_hat'] = xr.DataArray(data=z_hat, dims=['z_nom', 'time'])
 
 
     def fill_nans(self, tvar='temperature'):

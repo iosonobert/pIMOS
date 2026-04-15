@@ -21,8 +21,8 @@ import datetime
 import os
 
 # import zutils.xrwrap as xrwrap
-# import pIMOS.xrwrap.xrwrap as xrwrap
-import pIMOS.xrwrap.pimoswrap as pimoswrap 
+# import pIMOS._private_wrappers.xrwrap as xrwrap
+import pIMOS._private_wrappers.pimoswrap as pimoswrap 
 from pIMOS.read import SEABIRD_37_39_56 as read_sbd
 
 font = {'weight' : 'normal',
@@ -34,6 +34,8 @@ class_attrs = {
             'source': 'Seabird Data Logger', # Could be more specific.
             'process_level': 1
         }
+
+_verbose = True
 
 def from_asc(filename):
     """
@@ -52,23 +54,23 @@ def from_asc(filename):
     
     return rr, ds
 
-def from_cnv(filename, jdate_bug_fix=False):
+def from_cnv(filename, jdate_bug_fix=False, verbose=_verbose):
     """
     Spin up from *.asc file
     """
         
-    ds = read_sbd.parse_seabird_cnv(filename, jdate_bug_fix=jdate_bug_fix)
+    ds, sb = read_sbd.parse_seabird_cnv(filename, jdate_bug_fix=jdate_bug_fix, verbose=verbose)
 
     ds.attrs['raw_file_name']      = os.path.split(filename)[1]
     ds.attrs['raw_file_directory'] = os.path.split(filename)[0]
         
     ds.attrs.update(class_attrs)
-    rr = SEABIRD_37_39_56(ds)
+    rr = SEABIRD_37_39_56(ds, verbose=verbose)
     
     # This is toward process level 1 stuff
     rr.add_variable_attributes()
 
-    return rr, ds
+    return rr, [ds, sb]
 
 def from_netcdf(infile):
     """

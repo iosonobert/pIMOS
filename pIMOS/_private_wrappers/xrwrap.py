@@ -113,7 +113,7 @@ class xrwrap():
     # Policy: ideally only pimoswrap should directly subclass xrwrap.
     # Default is warning-only to avoid breaking existing legacy classes.
     _strict_direct_subclass_policy = True
-    _allowed_direct_subclass_module = 'pIMOS.xrwrap.pimoswrap'
+    _allowed_direct_subclass_module = 'pIMOS._private_wrappers.pimoswrap'
     _allowed_direct_subclass_name = 'pimoswrap'
 
     def __init_subclass__(cls, **kwargs):
@@ -904,6 +904,7 @@ class xrwrap():
             self.ds = self.ds.assign_coords({'lat_nom': lat_nom,})
         except:
             # print('Failed assigning nominal_latitude')
+            # raise(Exception('Failed assigning lat_nom'))
             pass
             
         try:
@@ -911,12 +912,15 @@ class xrwrap():
             self.ds = self.ds.assign_coords({'lon_nom': lat_nom,})
         except:
             # print('Failed assigning nominal_longitude')
+            # raise(Exception('Failed assigning lon_nom'))
             pass
 
         try:
             z_nom = self.ds.attrs['nominal_site_depth'] + self.ds.attrs['nominal_instrument_height_asb'] 
             self.ds = self.ds.assign_coords({'z_nom': z_nom,})
         except:
+            print(self.ds.attrs)
+            # raise(Exception('Failed assigning z_nom'))
             # print('Failed assigning z_nom')
             pass
             

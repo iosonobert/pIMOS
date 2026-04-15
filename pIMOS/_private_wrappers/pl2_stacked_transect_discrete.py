@@ -10,7 +10,7 @@ This module assumes quasi-discrete profiles (often one profile per file) and is
 kept for backward compatibility and profile-style workflows.
 
 Preferred user-facing import name:
-    pIMOS.xrwrap.pl2_stacked_transect_discrete
+    pIMOS._private_wrappers.pl2_stacked_transect_discrete
 """
 #%%
 import matplotlib.pyplot as plt
@@ -27,17 +27,17 @@ import glob
 import importlib 
 from collections import OrderedDict
 
-import pIMOS.xrwrap.xrwrap as xrwrap
+import pIMOS._private_wrappers.xrwrap as xrwrap
 # import zutils.stats as zstats
 # import zutils.file as zfile
 import afloat.time as ztime
 
-import pIMOS.xrwrap.pimos_pls as pls
-import pIMOS.xrwrap.seabird_37_39_56 as wrap_sbd
-import pIMOS.xrwrap.wetlabs_ntu as wetlabs_ntu
-import pIMOS.xrwrap.nortek_signature as nortek_signature
-import pIMOS.xrwrap.nortek_vector as nortek_vector 
-import pIMOS.xrwrap.pimoswrap as pimoswrap 
+import pIMOS._private_wrappers.pimos_pls as pls
+import pIMOS._private_wrappers.seabird_37_39_56 as wrap_sbd
+import pIMOS._private_wrappers.wetlabs_ntu as wetlabs_ntu
+import pIMOS._private_wrappers.nortek_signature as nortek_signature
+import pIMOS._private_wrappers.nortek_vector as nortek_vector 
+import pIMOS._private_wrappers.pimoswrap as pimoswrap 
 
 font = {'weight' : 'normal',
         'size'   : 15}

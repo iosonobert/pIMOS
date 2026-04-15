@@ -17,7 +17,7 @@ import pdb
 
 import importlib 
 
-import pIMOS.xrwrap.pimoswrap as pimoswrap
+import pIMOS._private_wrappers.pimoswrap as pimoswrap
 # import zutils.stats as zstats
 # import zutils.file as zfile
 

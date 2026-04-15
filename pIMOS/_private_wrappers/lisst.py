@@ -18,7 +18,7 @@ import os
 
 # import zutils.xrwrap as xrwrap
 from pIMOS.utils.file import parse_infile
-import pIMOS.xrwrap.pimoswrap as pimoswrap
+import pIMOS._private_wrappers.pimoswrap as pimoswrap
 
 from pIMOS.read import lisst as read_lisst
 

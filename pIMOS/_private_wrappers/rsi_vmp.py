@@ -2,7 +2,7 @@ import sys, os, scipy.io
 import xarray as xr
 # import zutils.xrwrap as xrwrap
 from pIMOS.utils.file import parse_infile
-import pIMOS.xrwrap.pimoswrap as pimoswrap
+import pIMOS._private_wrappers.pimoswrap as pimoswrap
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.io
@@ -11,7 +11,13 @@ import datetime
 ###############################################
 # These dependencies could be loader specific #
 ###############################################
-import pyODAS.read_p
+try:
+    import pyODAS.read_p
+except ImportError:
+    raise ImportError(
+        "pIMOS.wrappers.rsi_vmp requires the 'pyODAS' package, which is not "
+        "publicly distributed.\nContact the pIMOS maintainers for access."
+    )
 
 def from_netcdf(infile):
     """
