@@ -148,14 +148,33 @@ class DRIFTER(xrwrap.pimoswrap):
         return self
     
 
-    def calc_raw_speed(self, dist_var='distance', time_var='time', qc_var=None):
+    def calc_speed(self, dist_var='distance', time_var='time', qc_var=None):
         good_flag = qcvar(qc_var=qc_var, ds=self.ds)
 
         speed_c = calc_speed(self.ds[dist_var][good_flag], self.ds[time_var][good_flag])
         speed_a = np.full(len(self.ds[dist_var]), np.nan)
         speed_a[good_flag] = speed_c
 
-        self.ds['raw_speed'] = xr.DataArray(speed_a, dims=time_var, attrs={'units':'m s$^{-1}$',\
+        if qc_var is None:
+            speed_name = 'raw_speed'
+        else:
+            speed_name = 'speed'
+        self.ds[speed_name] = xr.DataArray(speed_a, dims=time_var, attrs={'units':'m s$^{-1}$',\
+                                                                         'comments':'First order fowards in time gradient ($\\delta x / \\delta t$) for QC'})
+        return self
+    
+    def calc_acc(self, speed_var='speed', time_var='time', qc_var=None):
+        good_flag = qcvar(qc_var=qc_var, ds=self.ds)
+
+        acc_c = calc_speed(self.ds[speed_var][good_flag], self.ds[time_var][good_flag])
+        acc_a = np.full(len(self.ds[speed_var]), np.nan)
+        acc_a[good_flag] = acc_c
+
+        if qc_var is None:
+            acc_name = 'raw_acceleration'
+        else:
+            acc_name = 'acceleration'
+        self.ds[acc_name] = xr.DataArray(acc_a, dims=time_var, attrs={'units':'m s$^{-2}$',\
                                                                          'comments':'First order fowards in time gradient ($\\delta x / \\delta t$) for QC'})
         return self
     
@@ -175,6 +194,13 @@ class DRIFTER(xrwrap.pimoswrap):
                                            attrs={'units':'m s$^{-1}$', 'comments':'Second order centred in time gradient ($\\delta x / \\delta t$) (np.gradient)'})
         return self
     
+    def flag_beached(self, window_size=60, move_threshold=1e-4, flagname='velocity'):
+        beach_flag = beached_flag(self, window_size=window_size, move_threshold=move_threshold)
+        self.associate_qc_flag('east_vel', flagname) 
+        self.update_qc_flag_logical(f'qc_{flagname}', 'time', self.ds['qc_position']==1, 1)
+        self.update_qc_flag_logical(f'qc_{flagname}', 'time', beach_flag, 1)
+        return self
+    
 
     def despike_drifter(self, window=3, spike_dist=400, qc0_val=3.0,\
                         reinstate=0.2, timecut=None, qc_var=None):
@@ -182,14 +208,20 @@ class DRIFTER(xrwrap.pimoswrap):
                                             reinstate=reinstate, timecut=timecut, qc_var=qc_var)
 
         # Calc good speed and add the flags in 
-        self.associate_qc_flag('latitude', 'position')
-        self.update_qc_flag_logical('qc_position', 'time', ~pos_flag, 1)
-        self.update_qc_flag_logical('qc_position', 'time', self.ds['qc_position'] != 1, 0)
-        self.associate_qc_flag('longitude', 'position')
+        if qc_var is None:
+            self.associate_qc_flag('latitude', 'position')
+            qc_var = 'qc_position'
+        if 'qc_variable' not in self.ds['longitude'].attrs:
+            self.associate_qc_flag('longitude', 'position')
+            
+        self.update_qc_flag_logical(qc_var, 'time', ~pos_flag, 1)
+        # self.update_qc_flag_logical(qc_var, 'time', self.ds['qc_position'] != 1, 0)
+        
         if 'easting' in self.ds:
-            self.associate_qc_flag('easting', 'position')
-            self.associate_qc_flag('northing', 'position')
-        self.calc_vel(qc_var='qc_position')
+            if 'qc_variable' not in self.ds['easting'].attrs:
+                self.associate_qc_flag('easting', 'position')
+                self.associate_qc_flag('northing', 'position')
+        self.calc_vel(qc_var=qc_var)
         return self
     
 
@@ -299,7 +331,9 @@ def despike_drifter_position(ds, window=3, spike_dist=400, qc0_val=3.0,\
     east_hf, _ = east_hf.floatda.despike_gn23()
 
     # Fit splines to new data
+    pos_flag = np.ones_like(time, dtype=bool)
     nanx = np.isnan(north_hf) | np.isnan(east_hf)
+    pos_flag[nanx] = False
     if np.sum(~nanx) > 0:
         north_fit = fit_spline(time[~nanx], north[~nanx], time)
         east_fit = fit_spline(time[~nanx], east[~nanx], time)
@@ -308,13 +342,42 @@ def despike_drifter_position(ds, window=3, spike_dist=400, qc0_val=3.0,\
         spike_dist_from_line = np.sqrt((north_fit - north)**2 + (east_fit - east)**2)
         east_vel, north_vel = calc_cart_vel(east_fit, north_fit, ds.time, qc_var=None, ds=ds)
     
-        pos_flag = (spike_dist_from_line < spike_dist) &\
-                    (np.abs(north_vel - north_background.interpolate_na('time')) < reinstate) &\
-                    (np.abs(east_vel - east_background.interpolate_na('time')) < reinstate)
-    else:
-        pos_flag = np.ones_like(time, dtype=bool)
+        pos_flag_update = (spike_dist_from_line < spike_dist) &\
+                            (np.abs(north_vel - north_background.interpolate_na('time')) < reinstate) &\
+                            (np.abs(east_vel - east_background.interpolate_na('time')) < reinstate)
+                 
+        # Only reinstate points that have been flagged, dont apply to points that were already good           
+        reinstate_mask = nanx & pos_flag_update
+        pos_flag[reinstate_mask] = True
 
     return pos_flag
+
+
+def beached_flag(rr, window_size=60, move_threshold=1e-4):
+    
+    # Calculate position differences
+    lat_diff = rr.ds['latitude'].diff(dim='time')
+    lon_diff = rr.ds['longitude'].diff(dim='time')
+    position_change = np.sqrt(lat_diff**2 + lon_diff**2)
+
+    # Rolling mean of position change over window
+    rolling_change = position_change.rolling(time=window_size, center=False).mean()
+
+    # Find where rolling change stays below threshold for the window
+    low_movement = rolling_change < move_threshold
+
+    # Find the first index where low movement starts and stays
+    beached_start = None
+    for i in range(window_size, len(low_movement)):
+        if low_movement[i-window_size:i].all():
+            beached_start = i - window_size
+            break
+
+    # Apply flag from beached_start onward
+    beach_flag = np.full(len(rr.ds['time']), False)
+    if beached_start is not None:
+        beach_flag[beached_start:] = True
+    return beach_flag
 
 
 
@@ -341,6 +404,9 @@ def plot_drifter_map(rr, size=20, qc_var='qc_position', cmap_var=None, utm=False
             cmap_var = rr.ds['speed']
         else:
             cmap_var = np.sqrt(rr.ds.east_vel**2 + rr.ds.north_vel**2)
+        cmap_label = 'Speed [m s$^{-1}$]'
+    else:
+        cmap_label = cmap_var.name if hasattr(cmap_var, 'name') else 'Variable'
     
     fig_aspect = get_drifter_aspect(rr)
     fig, ax = plt.subplots(1, 1, figsize=(size, size/fig_aspect))
@@ -350,18 +416,20 @@ def plot_drifter_map(rr, size=20, qc_var='qc_position', cmap_var=None, utm=False
                     c=cmap_var,
                     s=1,
                     cmap=cmap)
-    plt.colorbar(sc, ax=ax, label='Speed [m s$^{-1}$]', pad=0.01)
+    pcb = fig.colorbar(sc, ax=ax, label=cmap_label, pad=0.01, shrink=0.6)
     ax.set_aspect('equal')
 
-    ax.scatter(rr.ds[pos_x][rr.ds['qc_position']==1],\
-               rr.ds[pos_y][rr.ds['qc_position']==1],\
-               s=50, c='r', marker='x')
+    if qc_var is not None:
+        ax.scatter(rr.ds[pos_x][rr.ds[qc_var]==1],\
+                rr.ds[pos_y][rr.ds[qc_var]==1],\
+                s=50, c='r', marker='x')
     plt.grid()
 
     if attrs is None:
         attrs = ai.nonempty_attrs(rr)
     title= ' | '.join([str(attrs[i]) for i in attrs])
-    title += ' | Flags=' + str(int(np.sum(rr.ds[qc_var]))) + '/' + str(len(rr.ds[qc_var]))
+    if qc_var is not None:
+        title += ' | Flags=' + str(int(np.sum(rr.ds[qc_var]))) + '/' + str(len(rr.ds[qc_var]))
     plt.title(title)
 
-    return fig, ax
+    return fig, ax, pcb
